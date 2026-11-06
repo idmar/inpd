@@ -1,0 +1,11 @@
+[
+  {
+    "id": "example-case",
+    "title": "示例案例（请替换为经核实的真实案例）",
+    "company": "示例公司",
+    "industry": "示例行业",
+    "summary": "此条仅用于演示数据结构。",
+    "lessons": ["要点一", "要点二"],
+    "topics": ["stage-gate"]
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "stage-gate",
+    "topic": "stage-gate",
+    "front": "什么是阶段-关口（Stage-Gate）流程？",
+    "back": "将新产品开发划分为若干阶段，每个阶段结束设置关口，由跨职能评审决定继续、终止、暂停或调整。"
+  },
+  {
+    "id": "disruptive-innovation",
+    "topic": "disruptive-innovation",
+    "front": "颠覆性创新的典型特征？",
+    "back": "起初在低端或新市场以更简单、便宜的方式满足需求，随后性能提升并逐步侵蚀主流市场。"
+  },
+  {
+    "id": "lean-mvp",
+    "topic": "lean-startup",
+    "front": "最小可行产品（MVP）的目的？",
+    "back": "以最小成本验证核心假设，获得验证性学习，而不是交付功能完整的产品。"
+  }
+]

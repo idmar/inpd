@@ -1,0 +1,10 @@
+:root { --bg:#f6f7fb; --fg:#1f2430; --accent:#3b6cf6; --card:#fff; }
+* { box-sizing: border-box; }
+body { margin:0; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--fg); }
+header, main { max-width:880px; margin:0 auto; padding:16px; }
+nav a { margin-right:16px; color:var(--accent); text-decoration:none; }
+.card { background:var(--card); border-radius:12px; padding:24px; margin:12px 0; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 16px; cursor:pointer; margin-right:8px; }
+button.opt { background:#e8ecfb; color:var(--fg); display:block; margin:6px 0; }
+.flip { min-height:140px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; font-size:1.2em; }
+.ok { color:#1a8a3a; } .bad { color:#c0392b; }

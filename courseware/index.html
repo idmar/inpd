@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header></header>
+  <main>
+    <div id="slide" class="card"></div>
+    <p id="pos"></p>
+    <button id="prev">上一页</button><button id="next">下一页</button>
+  </main>
+  <script type="module">
+    import { loadData, mount, esc } from "../assets/js/common.js";
+    const data = await loadData("courseware");
+    mount("../", data.title);
+    let i = 0;
+    const el = document.getElementById("slide");
+    const render = () => {
+      const s = data.slides[i];
+      let html = `<h2>${esc(s.title)}</h2><p>${esc(s.content)}</p>`;
+      if (s.quiz) {
+        html += `<h3>${esc(s.quiz.question)}</h3>` +
+          s.quiz.options.map((o, k) => `<button class="opt" data-k="${k}">${esc(o)}</button>`).join("") +
+          `<p id="fb"></p>`;
+      }
+      el.innerHTML = html;
+      el.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+        const ok = Number(b.dataset.k) === s.quiz.answer;
+        const fb = document.getElementById("fb");
+        fb.className = ok ? "ok" : "bad";
+        fb.textContent = ok ? "回答正确" : "再想想";
+      });
+      document.getElementById("pos").textContent = `${i + 1} / ${data.slides.length}`;
+    };
+    const go = (d) => { i = Math.min(data.slides.length - 1, Math.max(0, i + d)); render(); };
+    document.getElementById("prev").onclick = () => go(-1);
+    document.getElementById("next").onclick = () => go(1);
+    render();
+  </script>
+</body>
+</html>

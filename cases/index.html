@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header></header>
+  <main id="list"></main>
+  <script type="module">
+    import { loadData, mount, esc } from "../assets/js/common.js";
+    mount("../", "案例展示");
+    const cases = await loadData("cases");
+    document.getElementById("list").innerHTML = cases.map((c) => `
+      <article class="card">
+        <h2>${esc(c.title)}</h2>
+        <p><small>${esc(c.company)} · ${esc(c.industry)}</small></p>
+        <p>${esc(c.summary)}</p>
+        <ul>${c.lessons.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
+      </article>`).join("");
+  </script>
+</body>
+</html>

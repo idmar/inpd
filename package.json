@@ -1,0 +1,11 @@
+{
+  "name": "inpd",
+  "version": "0.1.0",
+  "private": true,
+  "description": "创新管理与新产品开发：闪卡、交互式课件、案例展示",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "validate": "node scripts/validate.mjs"
+  }
+}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header></header>
+  <main>
+    <div id="card" class="card flip"></div>
+    <p id="pos"></p>
+    <button id="prev">上一张</button><button id="next">下一张</button><button id="shuffle">洗牌</button>
+  </main>
+  <script type="module">
+    import { loadData, mount, esc } from "../assets/js/common.js";
+    mount("../", "闪卡");
+    const cards = await loadData("flashcards");
+    let i = 0, shown = false;
+    const el = document.getElementById("card");
+    const render = () => {
+      const c = cards[i];
+      el.innerHTML = esc(shown ? c.back : c.front);
+      document.getElementById("pos").textContent = `${i + 1} / ${cards.length}`;
+    };
+    const go = (d) => { i = (i + d + cards.length) % cards.length; shown = false; render(); };
+    el.onclick = () => { shown = !shown; render(); };
+    document.getElementById("prev").onclick = () => go(-1);
+    document.getElementById("next").onclick = () => go(1);
+    document.getElementById("shuffle").onclick = () => {
+      for (let k = cards.length - 1; k > 0; k--) {
+        const j = Math.floor(Math.random() * (k + 1));
+        [cards[k], cards[j]] = [cards[j], cards[k]];
+      }
+      i = 0; shown = false; render();
+    };
+    render();
+  </script>
+</body>
+</html>
