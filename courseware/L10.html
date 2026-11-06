@@ -1,0 +1,2431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPD 第10讲 · 机会识别与客户需求 · 沉浸式科普展厅</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   0. DESIGN TOKENS
+   ========================================================= */
+:root{
+  --bg:#070b12; --bg2:#0b111b; --panel:#0f1622; --panel2:#131c2b;
+  --line:#1c2738; --line2:#273449;
+  --text:#e7edf5; --muted:#8a97aa; --dim:#5b677a;
+  --blue:#4c8dff; --teal:#2fd5bf; --amber:#f5a524; --slate:#94a3b8; --red:#ff5d6c;
+  --blue-a:rgba(76,141,255,.14); --teal-a:rgba(47,213,191,.14); --amber-a:rgba(245,165,36,.14);
+  --font:"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --ease:cubic-bezier(.22,.8,.24,1);
+  --dw:400px; --hh:60px; --ch:58px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.55;overflow:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:
+   radial-gradient(1200px 600px at 75% -10%,rgba(76,141,255,.10),transparent 60%),
+   radial-gradient(900px 500px at -10% 110%,rgba(47,213,191,.07),transparent 60%),
+   linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px) 0 0/32px 32px,
+   linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px) 0 0/32px 32px;}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.mono{font-family:var(--mono)}
+
+/* =========================================================
+   1. SHELL: header / stage / console / drawer / caption
+   ========================================================= */
+#app{position:relative;height:100%;display:grid;grid-template-rows:var(--hh) 1fr var(--ch)}
+header.top{display:flex;align-items:center;gap:20px;padding:0 20px;border-bottom:1px solid var(--line);background:rgba(7,11,18,.75);backdrop-filter:blur(10px);z-index:20}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:0}
+.brand .logo{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),var(--teal));box-shadow:0 0 18px rgba(76,141,255,.35)}
+.brand .t1{font-weight:600;font-size:13.5px;white-space:nowrap}
+.brand .t2{font-size:11px;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+nav.tabs{flex:1;display:flex;gap:4px;justify-content:center;position:relative;min-width:0;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative;padding:8px 14px;border-radius:9px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:color .25s,background .25s}
+.tab .n{font-family:var(--mono);font-size:11px;color:var(--dim);transition:color .25s}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{color:var(--text);background:var(--panel2)}
+.tab.active .n{color:var(--teal)}
+.tab .soon{font-size:9.5px;padding:1px 5px;border-radius:4px;border:1px solid var(--line2);color:var(--dim)}
+.tab-ink{position:absolute;left:0;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:transform .5s var(--ease),width .5s var(--ease)}
+.top-actions{display:flex;gap:8px;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:9px;border:1px solid var(--line2);background:var(--panel);font-size:12.5px;color:var(--text);transition:border-color .2s,background .2s,transform .15s,box-shadow .2s;white-space:nowrap}
+.btn:hover{border-color:#3a4a63;background:var(--panel2)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn.primary{border-color:rgba(76,141,255,.5);background:linear-gradient(180deg,rgba(76,141,255,.22),rgba(76,141,255,.08))}
+.btn.primary:hover{box-shadow:0 0 18px rgba(76,141,255,.25)}
+.btn.on{border-color:var(--teal);color:var(--teal);background:var(--teal-a)}
+.btn.amber{border-color:rgba(245,165,36,.5);background:var(--amber-a);color:#ffd28a}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+
+main#main{position:relative;overflow:hidden}
+#stage{position:absolute;inset:0;right:0;transition:right .5s var(--ease)}
+body.drawer-open #stage{right:var(--dw)}
+.stage-inner{position:absolute;inset:0;padding:18px 22px 16px;opacity:0;transform:translateY(10px) scale(.995);transition:opacity .5s var(--ease),transform .6s var(--ease)}
+.stage-inner.in{opacity:1;transform:none}
+.stage-inner.out{opacity:0;transform:translateY(-8px) scale(.995);transition-duration:.28s}
+
+#drawer{position:absolute;top:0;right:0;bottom:0;width:var(--dw);background:linear-gradient(180deg,var(--panel),var(--bg2));border-left:1px solid var(--line);transform:translateX(100%);transition:transform .5s var(--ease);display:flex;flex-direction:column;z-index:15}
+body.drawer-open #drawer{transform:none;box-shadow:-30px 0 60px rgba(0,0,0,.35)}
+#drawer .dh{padding:18px 20px 14px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+#drawer .dh .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin-bottom:4px}
+#drawer .dh h3{font-size:17px;font-weight:600;line-height:1.35}
+#drawer .dh .x{margin-left:auto;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line2);flex-shrink:0}
+#drawer .dh .x:hover{color:var(--text)}
+#drawer .db{padding:16px 20px 28px;overflow:auto;flex:1}
+.db p{color:#c8d2df;margin-bottom:12px;font-size:13.5px}
+.db h4{font-size:12px;font-family:var(--mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin:18px 0 8px}
+.db ul{list-style:none;margin-bottom:10px}
+.db li{position:relative;padding-left:16px;margin-bottom:7px;color:#c8d2df;font-size:13.3px}
+.db li::before{content:"";position:absolute;left:2px;top:.62em;width:6px;height:6px;border-radius:2px;background:var(--accent,var(--teal))}
+.db .quote{border-left:2px solid var(--amber);padding:10px 12px;background:var(--amber-a);border-radius:0 8px 8px 0;color:#ffe2b3;font-size:13.3px;margin:10px 0 14px}
+.db .meter{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin:6px 0 14px}
+.db .meter i{display:block;height:100%;border-radius:4px;width:0;transition:width .9s var(--ease) .15s}
+.db .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin-bottom:12px}
+.db .kv b{color:var(--muted);font-weight:500}
+.db .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;border:1px solid var(--line2);color:var(--muted);margin:0 4px 4px 0}
+.db > *{animation:rise .5s var(--ease) both}
+.db > *:nth-child(2){animation-delay:.04s}.db > *:nth-child(3){animation-delay:.08s}.db > *:nth-child(4){animation-delay:.12s}.db > *:nth-child(5){animation-delay:.16s}.db > *:nth-child(n+6){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+footer.console{display:flex;align-items:center;gap:16px;padding:0 20px;border-top:1px solid var(--line);background:rgba(7,11,18,.8);backdrop-filter:blur(10px);z-index:20}
+.console .where{display:flex;align-items:baseline;gap:10px;min-width:0;flex-shrink:0}
+.console .where .idx{font-family:var(--mono);color:var(--teal);font-size:12px}
+.console .where .nm{font-size:13px;font-weight:500;white-space:nowrap}
+.console .where .en{font-size:11px;color:var(--dim);font-family:var(--mono);white-space:nowrap}
+#consoleSlot{flex:1;display:flex;gap:8px;justify-content:center;align-items:center;min-width:0;overflow-x:auto;scrollbar-width:none}
+.console .nav{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.dots{display:flex;gap:5px;margin:0 6px}
+.dots i{width:6px;height:6px;border-radius:3px;background:var(--line2);transition:width .4s var(--ease),background .3s}
+.dots i.on{width:18px;background:var(--teal)}
+.iconbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line2);display:grid;place-items:center;color:var(--muted);transition:color .2s,border-color .2s}
+.iconbtn:hover{color:var(--text);border-color:#3a4a63}
+.iconbtn svg{width:16px;height:16px}
+
+#caption{position:absolute;left:50%;bottom:18px;transform:translate(-50%,20px);max-width:min(760px,calc(100% - 40px));padding:12px 18px 12px 16px;border-radius:12px;background:rgba(11,17,27,.88);border:1px solid var(--line2);backdrop-filter:blur(12px);box-shadow:0 20px 50px rgba(0,0,0,.45);display:flex;gap:12px;align-items:center;opacity:0;pointer-events:none;transition:opacity .4s var(--ease),transform .5s var(--ease);z-index:12}
+#caption.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#caption .rec{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1.4s infinite;flex-shrink:0}
+#caption.hint .rec{background:var(--teal);box-shadow:0 0 10px var(--teal);animation:none}
+#caption .txt{font-size:13.5px;color:#dbe4ef}
+#caption .bar{position:absolute;left:12px;right:12px;bottom:4px;height:2px;border-radius:2px;background:var(--line);overflow:hidden}
+#caption .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .4s linear}
+#caption.hint .bar{display:none}
+@keyframes blink{50%{opacity:.25}}
+
+/* generic panels */
+.panel{background:linear-gradient(180deg,rgba(19,28,43,.85),rgba(15,22,34,.85));border:1px solid var(--line);border-radius:14px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.h-title{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.h-sub{color:var(--muted);font-size:12.5px}
+
+/* =========================================================
+   2. MODULE 1 — Opportunity Matrix
+   ========================================================= */
+.m1{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+.m1-plot{position:relative;min-height:0;display:flex;flex-direction:column}
+.m1-plot .head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px}
+.m1-plot svg{flex:1;min-height:0;width:100%;touch-action:none;user-select:none}
+.m1-side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding-bottom:70px}
+.hud{padding:16px}
+.hud .lvl{display:flex;align-items:baseline;gap:10px;margin:6px 0 4px}
+.hud .lvl .big{font-size:40px;font-weight:700;font-family:var(--mono);line-height:1;transition:color .4s}
+.hud .lvl .lab{font-size:14px;font-weight:600;transition:color .4s}
+.hud .desc{color:var(--muted);font-size:12.5px;min-height:38px}
+.hud .coords{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.hud .coords div{background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.hud .coords b{display:block;font-family:var(--mono);font-size:15px;font-weight:500}
+.hud .coords span{font-size:11px;color:var(--muted)}
+.risk{margin-top:12px}
+.risk .rb{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}
+.risk .rb i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--teal),var(--blue),var(--amber));transition:width .35s var(--ease)}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.quiz{padding:16px;display:none}
+.quiz.show{display:block;animation:rise .5s var(--ease)}
+.quiz .q{font-size:14px;font-weight:500;margin:6px 0 10px}
+.quiz .fb{margin-top:10px;font-size:12.5px;padding:9px 11px;border-radius:9px;display:none}
+.quiz .fb.ok{display:block;background:var(--teal-a);color:#a9f3e8;border:1px solid rgba(47,213,191,.35)}
+.quiz .fb.no{display:block;background:rgba(255,93,108,.1);color:#ffb3ba;border:1px solid rgba(255,93,108,.3)}
+.legend-row{display:flex;gap:14px;font-size:11.5px;color:var(--muted)}
+.legend-row span{display:inline-flex;align-items:center;gap:6px}
+.legend-row i{width:10px;height:10px;border-radius:3px}
+.pin{cursor:pointer}
+.pin .pc{transition:r .25s var(--ease)}
+.pin:hover .pc{r:9}
+.pin text{pointer-events:none}
+
+/* =========================================================
+   3. MODULE 2 — Opportunity Generation Radar
+   ========================================================= */
+.m2{height:100%;display:grid;grid-template-columns:270px minmax(0,1fr) 340px;gap:18px}
+.m2-left{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding-bottom:70px}
+.donut-wrap{padding:16px}
+.donut-wrap svg{width:100%;max-width:220px;display:block;margin:6px auto 4px}
+.seg{cursor:pointer;transition:stroke-width .3s var(--ease),opacity .3s}
+.seg.dim{opacity:.3}
+.src-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.src-item{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;font-size:12.5px;cursor:pointer;transition:background .2s}
+.src-item:hover,.src-item.on{background:rgba(255,255,255,.04)}
+.src-item i{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.src-item b{margin-left:auto;font-family:var(--mono);font-weight:500}
+.ie-bar{padding:14px 16px}
+.ie-bar .track{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0 6px;background:var(--line)}
+.ie-bar .track i{display:block;height:100%;width:0;transition:width 1.2s var(--ease)}
+.ie-bar .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
+.m2-wheel{position:relative;min-height:0;display:flex;flex-direction:column}
+.m2-wheel svg{flex:1;min-height:0;width:100%}
+.wnode{cursor:pointer}
+.wnode .ring{transition:stroke .3s,stroke-width .3s}
+.wnode .core{transition:fill .3s}
+.wnode:hover .ring{stroke:var(--teal)}
+.wnode.sel .ring{stroke:var(--teal);stroke-width:2.5}
+.wnode.sel .core{fill:rgba(47,213,191,.18)}
+.wnode.linked .ring{stroke:var(--amber);stroke-width:2.5}
+.wnode .pulse{opacity:0}
+.wnode.sel .pulse{animation:npulse 1.8s var(--ease) infinite}
+@keyframes npulse{0%{opacity:.7;r:34}100%{opacity:0;r:62}}
+.m2-right{min-height:0;display:flex;flex-direction:column;gap:12px;padding-bottom:70px}
+.flip{perspective:1400px;flex:1;min-height:340px}
+.flip-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .9s var(--ease)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px;border:1px solid var(--line2);background:linear-gradient(160deg,#142036,#0d1420 60%);padding:18px;display:flex;flex-direction:column;overflow:hidden}
+.face.back{transform:rotateY(180deg)}
+.face .num{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.08em}
+.face h3{font-size:18px;font-weight:600;margin:4px 0 2px}
+.face .en{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-bottom:10px}
+.face .lead{font-size:12.5px;color:#b8c3d2;margin-bottom:10px}
+.face .anim{flex:1;min-height:150px;position:relative;border-radius:12px;background:rgba(7,11,18,.55);border:1px solid var(--line);overflow:hidden}
+.face .foot{margin-top:10px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.face.idle{align-items:center;justify-content:center;text-align:center}
+.face.idle .big7{font-size:76px;font-weight:700;font-family:var(--mono);background:linear-gradient(135deg,var(--blue),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+
+/* mini animations inside cards */
+.wc-word{position:absolute;white-space:nowrap;font-weight:600;opacity:0;animation:wcIn .7s var(--ease) forwards, wcFloat 4s ease-in-out infinite alternate}
+@keyframes wcIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes wcFloat{from{translate:0 0}to{translate:0 -6px}}
+.vrio-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;margin:6px 8px;background:rgba(255,255,255,.02);border:1px solid var(--line);opacity:0;animation:rowIn .5s var(--ease) forwards}
+.vrio-row .L{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-family:var(--mono);font-weight:600;background:var(--blue-a);color:var(--blue);flex-shrink:0}
+.vrio-row .ck{margin-left:auto;color:var(--teal);opacity:0;animation:fadeIn .3s forwards}
+.vrio-row small{color:var(--muted);font-size:11px;display:block}
+@keyframes rowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{to{opacity:1}}
+.tl{position:absolute;inset:12px 14px}
+.tl-step{position:relative;padding:0 0 9px 22px;opacity:0;animation:rowIn .5s var(--ease) forwards;font-size:12px}
+.tl-step::before{content:"";position:absolute;left:4px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--teal)}
+.tl-step::after{content:"";position:absolute;left:8.5px;top:16px;bottom:-1px;width:1px;background:var(--line2)}
+.tl-step:last-child::after{display:none}
+.tl-step b{color:var(--text);font-weight:600}
+.tl-step span{color:var(--muted)}
+.tl-step.hl::before{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px var(--amber)}
+.tr-row{display:grid;grid-template-columns:1fr 26px 1fr;align-items:center;gap:6px;margin:7px 10px;opacity:0;animation:rowIn .5s var(--ease) forwards;font-size:11.8px}
+.tr-row .a{padding:6px 8px;border-radius:7px;background:var(--blue-a);color:#bcd3ff;border:1px solid rgba(76,141,255,.25)}
+.tr-row .b{padding:6px 8px;border-radius:7px;background:var(--teal-a);color:#b4f5ec;border:1px solid rgba(47,213,191,.25)}
+.tr-row .arr{height:1px;background:linear-gradient(90deg,var(--blue),var(--teal));position:relative}
+.tr-row .arr::after{content:"";position:absolute;right:-1px;top:-3px;border-left:6px solid var(--teal);border-top:3.5px solid transparent;border-bottom:3.5px solid transparent}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+.cmp .c{border-radius:9px;padding:9px;border:1px solid var(--line);font-size:11.8px;opacity:0;animation:rowIn .5s var(--ease) forwards}
+.cmp .c h5{font-size:12px;margin-bottom:5px}
+.cmp .c.old{background:rgba(255,255,255,.02);color:var(--muted)}
+.cmp .c.new{background:var(--teal-a);border-color:rgba(47,213,191,.3);color:#c5f6ee}
+.tactics{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 10px}
+.tactics span{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--amber-a);color:#ffd28a;border:1px solid rgba(245,165,36,.3);opacity:0;animation:rowIn .5s var(--ease) forwards}
+
+/* placeholder */
+.ph{height:100%;display:grid;place-items:center}
+.ph-card{max-width:760px;width:100%;padding:28px 30px}
+.ph-card .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.ph-card .grid div{padding:12px 14px;border-radius:10px;background:var(--bg2);border:1px dashed var(--line2);font-size:12.5px;color:#c8d2df}
+.ph-card pre{font-family:var(--mono);font-size:11.5px;color:#9fb3cc;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow:auto;white-space:pre}
+
+/* =========================================================
+   4. MODULE 3 — Opportunity Tournament / Funnel
+   ========================================================= */
+.m3{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+.m3-main{min-height:0;display:flex;flex-direction:column}
+.m3-main svg{flex:1;min-height:0;width:100%}
+.m3-side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding-bottom:70px}
+.counts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:14px}
+.counts div{text-align:center;padding:8px 2px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);transition:border-color .4s,box-shadow .4s}
+.counts div.on{border-color:currentColor;box-shadow:0 0 16px -6px currentColor}
+.counts b{display:block;font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.2}
+.counts span{font-size:10.5px;color:var(--muted)}
+.proc{display:flex;gap:4px;padding:0 14px 14px;flex-wrap:wrap}
+.proc span{font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--line2);color:var(--dim);transition:all .4s var(--ease)}
+.proc span.on{border-color:var(--teal);color:var(--teal);background:var(--teal-a)}
+.proc span.done{color:var(--muted)}
+.crit{padding:14px 16px}
+.crit .ct{font-size:14px;font-weight:600;margin:4px 0 6px}
+.crit ul{list-style:none}
+.crit li{font-size:12.5px;color:#c8d2df;padding:3px 0 3px 16px;position:relative}
+.crit li::before{content:"";position:absolute;left:2px;top:.75em;width:6px;height:6px;border-radius:2px;background:var(--cc,var(--teal))}
+.log{padding:14px 16px;flex:1;min-height:150px;overflow:hidden}
+.log ul{list-style:none;margin-top:6px}
+.log li{font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:baseline;animation:rise .4s var(--ease)}
+.log li i{width:7px;height:7px;border-radius:2px;flex-shrink:0;transform:translateY(-1px)}
+.log li b{color:#c8d2df;font-weight:500;font-family:var(--mono);font-size:11px}
+.mission{padding:14px 16px;display:none;border-color:rgba(245,165,36,.45);background:linear-gradient(180deg,rgba(245,165,36,.10),rgba(15,22,34,.9))}
+.mission.show{display:block;animation:rise .6s var(--ease)}
+.mission .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px;margin-top:8px}
+.mission .kv b{color:#ffd28a;font-weight:500}
+.p3{transition:fill .5s,stroke .5s}
+.lbl3{transition:opacity .5s}
+
+/* =========================================================
+   5. MODULE 4 — Disruptive vs Incremental
+   ========================================================= */
+.m4{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px}
+.m4-main{min-height:0;display:flex;flex-direction:column}
+.m4-main svg.chart{flex:1;min-height:0;width:100%}
+.m4-side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding-bottom:70px}
+.slider-row{display:flex;align-items:center;gap:14px;padding:10px 14px;margin-bottom:62px}
+.slider-row .sv{font-family:var(--mono);font-size:13px;min-width:46px;text-align:right;color:var(--teal)}
+input[type=range].rng{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--teal) var(--p,0%),var(--line) var(--p,0%));outline:none;cursor:pointer}
+input[type=range].rng::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#0b111b;border:2px solid var(--teal);box-shadow:0 0 0 5px rgba(47,213,191,.15),0 0 14px rgba(47,213,191,.5);cursor:grab}
+input[type=range].rng::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#0b111b;border:2px solid var(--teal);cursor:grab}
+.bal{padding:12px 14px}
+.bal svg{width:100%;display:block}
+.attn{padding:14px 16px}
+.attn .row{display:grid;grid-template-columns:76px 1fr 38px;gap:8px;align-items:center;font-size:12px;margin-top:7px}
+.attn .row .tr{height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+.attn .row .tr i{display:block;height:100%;border-radius:4px;transition:width .25s linear}
+.attn .row b{font-family:var(--mono);font-weight:500;text-align:right;color:var(--muted);font-size:11.5px}
+.attn svg{width:100%;display:block;margin-top:8px}
+.cases{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px}
+.case{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);text-align:left;transition:border-color .25s,transform .25s var(--ease)}
+.case:hover{transform:translateY(-2px);border-color:#3a4a63}
+.case svg{width:100%;height:42px}
+.case b{font-size:12.5px;font-weight:600}
+.case span{font-size:10.5px;font-family:var(--mono)}
+@media (max-width:900px){.m3,.m4{grid-template-columns:1fr;height:auto}.m3-main svg,.m4-main svg.chart{height:56vh;flex:none}}
+
+/* =========================================================
+   6. MODULE 5 — Customer Needs Pipeline
+   ========================================================= */
+.m5{height:100%;display:flex;flex-direction:column;gap:12px}
+.stepper{display:flex;align-items:center;padding:10px 16px;gap:0}
+.sn{display:flex;align-items:center;gap:10px;padding:4px 8px;border-radius:10px;cursor:pointer;flex-shrink:0;transition:background .3s}
+.sn:hover{background:rgba(255,255,255,.03)}
+.sn .dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:13px;font-weight:600;border:1.5px solid var(--line2);color:var(--muted);background:var(--bg2);transition:all .45s var(--ease)}
+.sn .tx b{display:block;font-size:13px;font-weight:600;color:var(--muted);transition:color .3s;white-space:nowrap}
+.sn .tx span{font-size:10.5px;color:var(--dim);font-family:var(--mono);white-space:nowrap}
+.sn.done .dot{border-color:var(--teal);color:var(--teal)}
+.sn.on .dot{border-color:var(--teal);background:var(--teal);color:#04131a;box-shadow:0 0 0 5px rgba(47,213,191,.15),0 0 18px rgba(47,213,191,.45)}
+.sn.on .tx b{color:var(--text)}
+.sline{flex:1;height:2px;background:var(--line2);margin:0 6px;border-radius:2px;overflow:hidden;min-width:16px}
+.sline i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .6s var(--ease)}
+.m5-body{flex:1;min-height:0;position:relative}
+.pane{position:absolute;inset:0;opacity:0;transform:translateX(18px);transition:opacity .45s var(--ease),transform .55s var(--ease)}
+.pane.in{opacity:1;transform:none}
+.pane.out{opacity:0;transform:translateX(-18px)}
+.pane-h{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;gap:12px}
+.seg-ctl{display:inline-flex;padding:3px;border-radius:9px;background:var(--bg2);border:1px solid var(--line2)}
+.seg-ctl button{padding:5px 12px;border-radius:7px;font-size:12.5px;color:var(--muted);transition:all .25s}
+.seg-ctl button.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
+
+/* step 1 */
+.s1{display:grid;grid-template-columns:250px minmax(0,1fr) 250px;gap:14px;height:calc(100% - 46px)}
+.s1 .col{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto;padding-bottom:64px}
+.mcard{padding:12px 14px;display:grid;grid-template-columns:58px 1fr;gap:10px;align-items:center;opacity:0;animation:rowIn .5s var(--ease) forwards}
+.mcard svg{width:58px;height:46px}
+.mcard b{font-size:13px}
+.mcard p{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:2px}
+.umap{display:flex;flex-direction:column;padding:12px 14px;min-height:0}
+.umap svg{flex:1;min-height:0;width:100%}
+.umap .info{font-size:12.5px;color:#c8d2df;min-height:40px;padding:8px 10px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);margin-bottom:58px;transition:border-color .3s}
+.rec{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:9px 12px;font-size:12px;opacity:0;animation:rowIn .5s var(--ease) forwards}
+.rec .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--blue-a);color:var(--blue);font-size:12px}
+.rec b{font-size:12.5px}
+.rec small{display:block;color:var(--muted);font-size:11px;line-height:1.45}
+.outbox{padding:11px 13px;font-size:12px;border-color:rgba(47,213,191,.35);background:linear-gradient(180deg,rgba(47,213,191,.08),rgba(15,22,34,.9));color:#c5f6ee}
+
+/* step 2 */
+.s2{display:grid;grid-template-columns:250px minmax(0,1fr);gap:14px;height:calc(100% - 46px)}
+.rules{display:flex;flex-direction:column;gap:8px;overflow:auto;padding-bottom:64px}
+.rule{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--panel);text-align:left;transition:all .3s var(--ease)}
+.rule:hover{border-color:#3a4a63}
+.rule .n{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-weight:600;background:var(--bg2);color:var(--muted);transition:all .3s}
+.rule b{font-size:13px;display:block}
+.rule small{font-size:11px;color:var(--muted)}
+.rule.on{border-color:var(--teal);background:linear-gradient(90deg,rgba(47,213,191,.12),var(--panel))}
+.rule.on .n{background:var(--teal);color:#04131a}
+.s2-stage{padding:18px 22px;display:flex;flex-direction:column;gap:12px;overflow:auto;padding-bottom:70px}
+.bubble{position:relative;align-self:flex-start;max-width:88%;padding:12px 16px;border-radius:14px 14px 14px 4px;background:var(--panel2);border:1px solid var(--line2);font-size:15px;color:#e7edf5}
+.bubble::before{content:"顾客";position:absolute;top:-9px;left:12px;font-size:10px;padding:0 6px;border-radius:4px;background:var(--blue);color:#fff}
+.flowarrow{height:34px;position:relative;margin-left:30px}
+.flowarrow::before{content:"";position:absolute;left:0;top:0;bottom:6px;width:2px;background:linear-gradient(var(--blue),var(--teal))}
+.flowarrow::after{content:"";position:absolute;left:-4px;bottom:0;border-top:7px solid var(--teal);border-left:5px solid transparent;border-right:5px solid transparent}
+.flowarrow span{position:absolute;left:14px;top:7px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.tgl-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tgl{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+.tgl .sw{width:46px;height:24px;border-radius:12px;background:rgba(255,93,108,.25);border:1px solid rgba(255,93,108,.5);position:relative;transition:all .35s var(--ease)}
+.tgl .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--red);transition:all .35s var(--ease)}
+.tgl.ok .sw{background:rgba(47,213,191,.22);border-color:rgba(47,213,191,.5)}
+.tgl.ok .sw::after{left:24px;background:var(--teal)}
+.tgl .l1{color:var(--red)}.tgl.ok .l1{color:var(--muted)}
+.tgl .l2{color:var(--muted)}.tgl.ok .l2{color:var(--teal)}
+.ncard{position:relative;padding:16px 18px 14px;border-radius:14px;border:1px solid rgba(255,93,108,.45);background:linear-gradient(180deg,rgba(255,93,108,.08),rgba(15,22,34,.9));transition:border-color .5s,background .5s}
+.ncard.ok{border-color:rgba(47,213,191,.5);background:linear-gradient(180deg,rgba(47,213,191,.09),rgba(15,22,34,.9))}
+.ncard .tagl{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--red)}
+.ncard.ok .tagl{color:var(--teal)}
+.ncard .ntext{font-size:19px;font-weight:600;margin:6px 0 10px;transition:opacity .35s,filter .35s,transform .35s}
+.ncard .ntext.swap{opacity:0;filter:blur(6px);transform:translateY(4px)}
+.ncard mark{background:none;color:inherit;padding:0 2px;border-radius:4px;transition:all .4s}
+.ncard mark.bad{background:rgba(255,93,108,.2);box-shadow:inset 0 -2px 0 var(--red);color:#ffc2c8}
+.ncard mark.bad.strike{text-decoration:line-through;text-decoration-color:var(--red);opacity:.6}
+.ncard mark.good{background:rgba(47,213,191,.18);box-shadow:inset 0 -2px 0 var(--teal);color:#c5f6ee}
+.ncard .why{font-size:12.5px;color:#c8d2df;display:flex;gap:8px;align-items:flex-start}
+.ncard .why i{flex-shrink:0;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;background:var(--red);color:#fff;margin-top:1px}
+.ncard.ok .why i{background:var(--teal);color:#04131a}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pair div{padding:10px 12px;border-radius:10px;font-size:12.5px;border:1px dashed var(--line2);color:var(--muted)}
+.pair div b{display:block;font-size:10.5px;font-family:var(--mono);letter-spacing:.06em;margin-bottom:3px}
+.conflict{display:flex;gap:12px;align-items:center;padding:10px 14px;font-size:12.5px;color:#c8d2df}
+.conflict .vs{display:flex;gap:6px;flex-shrink:0}
+.conflict .vs span{padding:3px 8px;border-radius:6px;font-size:11px;border:1px solid var(--line2)}
+.conflict .vs span.y{border-color:var(--teal);color:var(--teal);background:var(--teal-a)}
+.conflict .vs span.n{text-decoration:line-through;color:var(--dim)}
+
+/* step 3 */
+.s3{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:14px;height:calc(100% - 46px)}
+.board{position:relative;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:
+  radial-gradient(circle at 1px 1px,rgba(255,255,255,.06) 1px,transparent 0) 0 0/18px 18px, var(--bg2);margin-bottom:62px}
+.note{position:absolute;width:23%;min-height:13%;padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.4;color:#1a1f29;background:#f4e7b4;box-shadow:0 6px 16px rgba(0,0,0,.35);opacity:0;transform:scale(.6);
+  transition:left .9s var(--ease),top .9s var(--ease),transform .9s var(--ease),opacity .5s,background .6s,box-shadow .6s}
+.note.show{opacity:1}
+.note.g0{background:#bff3ea}.note.g1{background:#cfe0ff}.note.g2{background:#ffe2b0}
+.note.gone{opacity:0!important;transform:scale(.4) rotate(18deg)!important}
+.note.shake{animation:shake .5s 2;background:#ffc7cd}
+.note .ck{position:absolute;right:6px;bottom:4px;font-size:11px;color:#0a7a6a;opacity:0;transition:opacity .4s}
+.note.rv .ck{opacity:1}
+@keyframes shake{25%{translate:-4px 0}75%{translate:4px 0}}
+.gh{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12.5px;font-weight:600;opacity:0;transform:translateY(-8px);transition:opacity .5s,transform .6s var(--ease)}
+.gh.show{opacity:1;transform:none}
+.gh.sec{height:8.5%;border:1px solid currentColor;background:rgba(11,17,27,.8)}
+.gh.pri{height:8.5%;color:#04131a}
+.sweep{position:absolute;top:0;bottom:0;width:23.5%;border-radius:10px;background:linear-gradient(90deg,transparent,rgba(47,213,191,.18),transparent);opacity:0;pointer-events:none}
+.six{padding:14px 16px;display:flex;flex-direction:column;gap:6px;overflow:auto;margin-bottom:62px}
+.six .st{display:grid;grid-template-columns:24px 1fr;gap:9px;align-items:start;padding:7px 8px;border-radius:9px;font-size:12.5px;color:var(--muted);transition:all .35s}
+.six .st i{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:11.5px;border:1px solid var(--line2);transition:all .35s}
+.six .st.on{background:var(--teal-a);color:var(--text)}
+.six .st.on i{background:var(--teal);color:#04131a;border-color:var(--teal)}
+.six .st.done i{color:var(--teal);border-color:var(--teal)}
+
+/* step 4 */
+.s4{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;height:calc(100% - 46px)}
+.s4 .plot{padding:10px 12px;display:flex;flex-direction:column;min-height:0;margin-bottom:62px}
+.s4 .plot svg{flex:1;min-height:0;width:100%}
+.s4 .side{display:flex;flex-direction:column;gap:10px;overflow:auto;padding-bottom:64px}
+.kcurve{cursor:pointer}
+.kinfo{padding:14px 16px}
+.kinfo h4{font-size:16px;margin:4px 0 2px}
+.kinfo .en{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.kinfo p{font-size:12.5px;color:#c8d2df;margin-top:8px}
+.kinfo .ex{margin-top:8px;padding:8px 10px;border-radius:8px;font-size:12px;background:var(--bg2);border:1px solid var(--line)}
+.cbar{display:grid;grid-template-columns:84px 1fr 38px;gap:8px;align-items:center;font-size:12px;margin-top:8px}
+.cbar .tr{position:relative;height:10px;border-radius:5px;background:var(--line)}
+.cbar .tr::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#5b677a}
+.cbar .tr i{position:absolute;top:0;bottom:0;border-radius:5px}
+.cbar b{font-family:var(--mono);font-weight:500;font-size:11.5px;text-align:right}
+.alloc .row{display:grid;grid-template-columns:62px 1fr 34px;gap:8px;align-items:center;font-size:12px;margin-top:7px}
+.alloc .tr{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.alloc .tr i{display:block;height:100%;border-radius:4px;transition:width .9s var(--ease),background .6s}
+.alloc b{font-family:var(--mono);font-weight:500;font-size:11px;color:var(--muted);text-align:right}
+.ipt{cursor:pointer}
+
+/* step 5 */
+.s5{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;height:calc(100% - 46px)}
+.ringp{padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;margin-bottom:62px;text-align:center}
+.ringp svg{width:180px;height:180px}
+.clist{display:flex;flex-direction:column;gap:8px;overflow:auto;padding-bottom:70px}
+.ci{display:grid;grid-template-columns:26px 1fr;gap:12px;align-items:center;padding:11px 14px;border-radius:11px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left;font-size:13.3px;color:#c8d2df;transition:all .3s var(--ease);opacity:0;animation:rowIn .5s var(--ease) forwards}
+.ci:hover{border-color:#3a4a63}
+.ci .bx{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--line2);display:grid;place-items:center;transition:all .3s}
+.ci .bx svg{width:14px;height:14px;stroke:#04131a;stroke-width:3;fill:none;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .4s var(--ease) .1s}
+.ci.on{border-color:rgba(47,213,191,.4);background:linear-gradient(90deg,rgba(47,213,191,.1),var(--panel));color:var(--text)}
+.ci.on .bx{background:var(--teal);border-color:var(--teal)}
+.ci.on .bx svg{stroke-dashoffset:0}
+@media (max-width:1100px){.s1{grid-template-columns:1fr 1fr}.s1 .col:last-child{grid-column:1/-1}.stepper .tx span{display:none}}
+@media (max-width:900px){.m5{height:auto}.m5-body{min-height:1100px}.s1,.s2,.s3,.s4,.s5{grid-template-columns:1fr;height:auto}.stepper{overflow-x:auto}.stepper .tx{display:none}.board{height:520px}.s4 .plot svg,.umap svg{height:50vh;flex:none}}
+
+/* responsive */
+@media (max-width:1180px){
+  .m2{grid-template-columns:240px minmax(0,1fr)}
+  .m2-right{grid-column:1/-1;flex-direction:row;padding-bottom:70px}
+  .flip{min-height:330px}
+}
+@media (max-width:900px){
+  :root{--dw:100%}
+  body{overflow:auto}
+  .brand .t2,.console .where .en{display:none}
+  .stage-inner{overflow:auto}
+  .m1,.m2{grid-template-columns:1fr;height:auto}
+  .m1-plot svg,.m2-wheel svg{height:62vh;flex:none}
+  .m2-right{flex-direction:column}
+  body.drawer-open #stage{right:0}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#06101c" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></div>
+      <div><div class="t1">新产品开发：机会识别与客户需求</div><div class="t2">BIE 502 · Innovation & NPD · Lecture 10</div></div>
+    </div>
+    <nav class="tabs" id="tabs"><span class="tab-ink" id="tabInk"></span></nav>
+    <div class="top-actions">
+      <button class="btn primary" id="tourBtn" aria-label="自动播放演示">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg><span>Tour 演示</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="stage"></section>
+    <div id="caption"><span class="rec"></span><span class="txt"></span><span class="bar"><i></i></span></div>
+    <aside id="drawer" aria-live="polite">
+      <div class="dh"><div><div class="tag" id="dTag"></div><h3 id="dTitle"></h3></div>
+        <button class="x" id="dClose" aria-label="关闭"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="db" id="dBody"></div>
+    </aside>
+  </main>
+
+  <footer class="console">
+    <div class="where"><span class="idx" id="cIdx">01</span><span class="nm" id="cName"></span><span class="en" id="cEn"></span></div>
+    <div id="consoleSlot"></div>
+    <div class="nav">
+      <button class="iconbtn" id="prevBtn" aria-label="上一章"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="dots" id="dots"></div>
+      <button class="iconbtn" id="nextBtn" aria-label="下一章"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* =====================================================================
+   NPD EXHIBIT CORE  ·  模块化展厅框架
+   ---------------------------------------------------------------------
+   扩展接口（后续模块 3/4/5 直接调用即可替换占位）：
+
+   NPD.registerModule({
+     id:'m3', index:3, title:'机会漏斗筛选', en:'Opportunity Tournament',
+     mount(ctx){            // 进入章节时调用
+       ctx.stage            // 本章根节点 (HTMLElement)
+       ctx.console          // 底部控制台插槽 (HTMLElement)
+       ctx.drawer.open({tag,title,html,accent}) / ctx.drawer.close()
+       ctx.caption(text, {hint:true})          // 字幕条
+       ctx.loop((t,dt)=>{})                    // rAF 循环，离开章节自动清理
+       ctx.tween(ms,(p)=>{},ease)              // 返回 Promise 的补间
+       ctx.wait(ms)                            // Tour 中可被中断的等待
+       ctx.on(el,'click',fn)                   // 自动解绑的事件
+       ctx.svg(tag,attrs,parent) / ctx.h(html) // DOM 辅助
+       return {
+         tour: async (ctx)=>{ ... },           // 自动演示脚本（可选）
+         unmount(){ ... }                      // 额外清理（可选）
+       };
+     }
+   });
+   ===================================================================== */
+const NPD = (() => {
+  const $ = s => document.querySelector(s);
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const modules = [];
+  let cur = null, curIdx = -1, cleanups = [], loops = [], rafId = 0, lastT = 0;
+  let tourToken = 0, touring = false, switching = false;
+
+  const ease = {
+    io: t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2,
+    out: t => 1 - Math.pow(1-t, 3),
+    lin: t => t
+  };
+
+  /* ---------- helpers ---------- */
+  function svg(tag, attrs = {}, parent) {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) {
+      if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+
+  /* ---------- rAF master loop ---------- */
+  function frame(t) {
+    const dt = Math.min(64, t - (lastT || t)); lastT = t;
+    for (const f of loops.slice()) f(t, dt);
+    rafId = requestAnimationFrame(frame);
+  }
+  rafId = requestAnimationFrame(frame);
+
+  /* ---------- drawer ---------- */
+  const drawer = {
+    open({ tag = '', title = '', html = '', accent = 'var(--teal)' }) {
+      $('#dTag').textContent = tag; $('#dTag').style.color = accent;
+      $('#dTitle').textContent = title;
+      const b = $('#dBody'); b.style.setProperty('--accent', accent);
+      b.innerHTML = html; b.scrollTop = 0;
+      document.body.classList.add('drawer-open');
+      requestAnimationFrame(() => b.querySelectorAll('.meter i[data-w]').forEach(i => i.style.width = i.dataset.w));
+    },
+    close() { document.body.classList.remove('drawer-open'); },
+    get isOpen() { return document.body.classList.contains('drawer-open'); }
+  };
+  $('#dClose').onclick = () => drawer.close();
+
+  /* ---------- caption ---------- */
+  let capTimer = 0;
+  function caption(text, opt = {}) {
+    const c = $('#caption'); clearTimeout(capTimer);
+    if (!text) { c.classList.remove('show'); return; }
+    c.querySelector('.txt').textContent = text;
+    c.classList.toggle('hint', !!opt.hint);
+    c.classList.add('show');
+    if (opt.hint) capTimer = setTimeout(() => c.classList.remove('show'), opt.ms || 3800);
+  }
+  function tourProgress(p) { $('#caption .bar i').style.width = (p*100).toFixed(1) + '%'; }
+
+  /* ---------- module context ---------- */
+  function makeCtx(root) {
+    return {
+      stage: root, console: $('#consoleSlot'), drawer, caption, svg, h, ease,
+      loop(fn) { loops.push(fn); cleanups.push(() => { loops = loops.filter(f => f !== fn); }); },
+      on(el, ev, fn, o) { el.addEventListener(ev, fn, o); cleanups.push(() => el.removeEventListener(ev, fn, o)); },
+      tween(ms, fn, e = ease.io) {
+        return new Promise(res => {
+          const t0 = performance.now();
+          const step = now => {
+            const p = Math.min(1, (now - t0) / ms); fn(e(p));
+            if (p < 1) { const id = requestAnimationFrame(step); cleanups.push(() => cancelAnimationFrame(id)); } else res();
+          };
+          requestAnimationFrame(step);
+        });
+      },
+      wait(ms) {
+        const tok = tourToken;
+        return new Promise((res, rej) => {
+          const id = setTimeout(() => (tok === tourToken && touring) ? res() : rej('cancel'), ms);
+          cleanups.push(() => clearTimeout(id));
+        });
+      },
+      get touring() { return touring; }
+    };
+  }
+
+  /* ---------- tabs ---------- */
+  function renderTabs() {
+    const nav = $('#tabs'); const ink = $('#tabInk');
+    nav.querySelectorAll('.tab').forEach(t => t.remove());
+    modules.forEach((m, i) => {
+      const b = h(`<button class="tab" data-i="${i}"><span class="n">0${m.index}</span><span>${m.title}</span>${m.placeholder ? '<span class="soon">待续</span>' : ''}</button>`);
+      b.onclick = () => { stopTour(); go(i); };
+      nav.insertBefore(b, ink);
+    });
+    $('#dots').innerHTML = modules.map(() => '<i></i>').join('');
+    markTabs();
+  }
+  function markTabs() {
+    const tabs = [...document.querySelectorAll('.tab')];
+    tabs.forEach((t, i) => t.classList.toggle('active', i === curIdx));
+    const a = tabs[curIdx], ink = $('#tabInk');
+    if (a) { ink.style.width = a.offsetWidth - 20 + 'px'; ink.style.transform = `translateX(${a.offsetLeft + 10}px)`; }
+    [...document.querySelectorAll('#dots i')].forEach((d, i) => d.classList.toggle('on', i === curIdx));
+  }
+  window.addEventListener('resize', markTabs);
+
+  /* ---------- navigation ---------- */
+  async function go(i) {
+    if (i < 0 || i >= modules.length || switching) return cur;
+    if (i === curIdx && cur) return cur;
+    switching = true;
+    const stage = $('#stage');
+    const old = stage.querySelector('.stage-inner');
+    if (old) { old.classList.remove('in'); old.classList.add('out'); await new Promise(r => setTimeout(r, 260)); }
+    // cleanup old module
+    cleanups.forEach(f => { try { f(); } catch (e) {} }); cleanups = []; loops = [];
+    if (cur && cur.api && cur.api.unmount) try { cur.api.unmount(); } catch (e) {}
+    drawer.close(); if (!touring) caption('');
+    stage.innerHTML = ''; $('#consoleSlot').innerHTML = '';
+    // mount new
+    curIdx = i; const m = modules[i];
+    const root = h('<div class="stage-inner"></div>'); stage.appendChild(root);
+    const ctx = makeCtx(root);
+    const api = (m.mount && m.mount(ctx)) || {};
+    cur = { m, api, ctx };
+    $('#cIdx').textContent = '0' + m.index; $('#cName').textContent = m.title; $('#cEn').textContent = m.en || '';
+    markTabs();
+    try { history.replaceState(null, '', '#' + m.id); } catch (e) {}
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('in')));
+    switching = false;
+    return cur;
+  }
+  $('#prevBtn').onclick = () => { stopTour(); go(curIdx - 1); };
+  $('#nextBtn').onclick = () => { stopTour(); go(curIdx + 1); };
+  window.addEventListener('keydown', e => {
+    if (e.target.closest('input,textarea')) return;
+    if (e.key === 'ArrowRight') { stopTour(); go(curIdx + 1); }
+    if (e.key === 'ArrowLeft') { stopTour(); go(curIdx - 1); }
+    if (e.key === 'Escape') { drawer.isOpen ? drawer.close() : stopTour(); }
+  });
+
+  /* ---------- Tour mode ---------- */
+  function setTourBtn() {
+    const b = $('#tourBtn');
+    b.classList.toggle('amber', touring); b.classList.toggle('primary', !touring);
+    b.querySelector('span').textContent = touring ? '停止演示' : 'Tour 演示';
+    b.querySelector('svg').innerHTML = touring
+      ? '<rect x="6" y="6" width="12" height="12" rx="2"/>'
+      : '<path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>';
+  }
+  function stopTour(msg) {
+    if (!touring) return;
+    touring = false; tourToken++; setTourBtn();
+    caption(msg || '演示已停止 · 进入手动探索模式', { hint: true, ms: 2600 });
+  }
+  async function startTour() {
+    touring = true; const tok = ++tourToken; setTourBtn();
+    const list = modules.map((m, i) => i).filter(i => modules[i].tourable !== false);
+    const startAt = 0;
+    try {
+      for (let k = startAt; k < list.length; k++) {
+        if (tok !== tourToken) return;
+        tourProgress(k / list.length);
+        const c = await go(list[k]);
+        if (c.api.reset) c.api.reset();
+        await c.ctx.wait(700);
+        if (c.api.tour) await c.api.tour(c.ctx, p => tourProgress((k + p) / list.length));
+        else { caption(`${c.m.title} · 该章节将在下一步实现`); await c.ctx.wait(2400); }
+      }
+      tourProgress(1);
+      touring = false; tourToken++; setTourBtn();
+      caption('演示结束 · 可点击任意章节继续深入探索', { hint: true, ms: 4200 });
+    } catch (e) { if (e !== 'cancel') console.error(e); }
+  }
+  $('#tourBtn').onclick = () => touring ? stopTour() : startTour();
+  // 手动交互打断演示
+  $('#stage').addEventListener('pointerdown', () => { if (touring) stopTour('检测到手动操作 · 演示已暂停'); }, true);
+
+  /* ---------- boot ---------- */
+  function boot() {
+    const want = (location.hash || '').slice(1);
+    const i = Math.max(0, modules.findIndex(m => m.id === want));
+    go(i);
+  }
+
+  return { registerModule(def) { modules.push(def); modules.sort((a, b) => a.index - b.index); renderTabs(); }, boot, go, drawer, caption, svg, h, ease };
+})();
+
+
+/* =====================================================================
+   MODULE 1 · 机会识别双维度矩阵
+   ===================================================================== */
+NPD.registerModule({
+  id: 'm1', index: 1, title: '机会识别矩阵', en: 'Opportunity Matrix',
+  mount(ctx) {
+    const { svg } = ctx;
+    const W = 760, H = 580, X0 = 160, Y0 = 500, S = 440;
+    const R1 = .55, R2 = .95;                 // 层次边界（归一化半径）
+    const px = u => X0 + u * S, py = v => Y0 - v * S;
+    const C = { 1: '#2fd5bf', 2: '#4c8dff', 3: '#f5a524' };
+    const LV = {
+      1: { name: '层次 1 · 低风险', short: '核心市场扩展与优化、降价', risk: .22,
+           desc: '市场发展快、扩大快、变化快，已有产品降价快——相对低风险。' },
+      2: { name: '层次 2 · 中风险', short: '相邻增长 · 鲜为人知的领域', risk: .58,
+           desc: '机会被推向市场、技术或两方面均鲜为人知的领域。' },
+      3: { name: '层次 3 · 高风险/颠覆式', short: '世界领先的新型产品与服务', risk: .93,
+           desc: '尝试开拓世界领先的方法，拥有最大的不确定性。' }
+    };
+    const levelOf = (u, v) => { const d = Math.hypot(u, v); return d < R1 ? 1 : d < R2 ? 2 : 3; };
+    const xZone = u => u < 1/3 ? '已有解决方案' : u < 2/3 ? '未使用的已有方案' : '全新方案';
+    const yZone = v => v < 1/3 ? '目前服务的已有市场' : v < 2/3 ? '未涉及的已有市场' : '新需求 / 新市场';
+
+    /* ---------- layout ---------- */
+    const root = ctx.h(`
+      <div class="m1">
+        <div class="m1-plot">
+          <div class="head">
+            <div><div class="eyebrow">Module 01 · Solution × Need</div><div class="h-title">机会识别双维度矩阵</div></div>
+            <div class="legend-row"><span><i style="background:${C[1]}"></i>层次1</span><span><i style="background:${C[2]}"></i>层次2</span><span><i style="background:${C[3]}"></i>层次3</span></div>
+          </div>
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-label="机会矩阵"></svg>
+        </div>
+        <div class="m1-side">
+          <div class="panel hud">
+            <div class="eyebrow">探索光标 · 实时定位</div>
+            <div class="lvl"><span class="big">L1</span><span class="lab"></span></div>
+            <div class="desc"></div>
+            <div class="coords">
+              <div><span>解决方案维度</span><b class="cu">0.00</b><span class="zx"></span></div>
+              <div><span>需求/市场维度</span><b class="cv">0.00</b><span class="zy"></span></div>
+            </div>
+            <div class="risk"><div class="eyebrow" style="display:flex;justify-content:space-between"><span>不确定性</span><span class="rv mono">22%</span></div><div class="rb"><i style="width:22%"></i></div></div>
+          </div>
+          <div class="panel hud" style="padding:14px 16px">
+            <div class="eyebrow" style="margin-bottom:10px">交互工具</div>
+            <div class="tools">
+              <button class="btn sm" data-a="detail">层次详解</button>
+              <button class="btn sm" data-a="charter">章程边界</button>
+              <button class="btn sm on" data-a="radar">雷达扫描</button>
+              <button class="btn sm amber" data-a="quiz">思考题</button>
+            </div>
+            <p class="h-sub" style="margin-top:10px">拖动光标在矩阵中移动；轻点区域或案例标记查看解析。</p>
+          </div>
+          <div class="panel quiz">
+            <div class="eyebrow" style="color:var(--amber)">Think · 思考互动</div>
+            <div class="q">若企业希望在<b>已有产品基础上</b>、<b>1 年内</b>上市新产品，光标应落在哪个区域？</div>
+            <div class="h-sub">把光标拖到你认为的位置，再点击提交。</div>
+            <div class="tools" style="margin-top:10px"><button class="btn sm primary" data-a="submit">提交答案</button><button class="btn sm" data-a="reveal">显示答案</button></div>
+            <div class="fb"></div>
+          </div>
+        </div>
+      </div>`);
+    ctx.stage.appendChild(root);
+    const S$ = s => root.querySelector(s);
+    const sv = S$('svg');
+
+    /* ---------- defs ---------- */
+    const defs = svg('defs', {}, sv);
+    defs.innerHTML = `
+      <clipPath id="m1clip"><rect x="${X0}" y="${Y0 - S}" width="${S}" height="${S}"/></clipPath>
+      <radialGradient id="m1sweep" cx="0" cy="1" r="1" gradientUnits="objectBoundingBox">
+        <stop offset="0" stop-color="#2fd5bf" stop-opacity=".0"/><stop offset="1" stop-color="#2fd5bf" stop-opacity=".22"/></radialGradient>
+      <linearGradient id="m1beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2fd5bf" stop-opacity="0"/><stop offset="1" stop-color="#2fd5bf" stop-opacity=".9"/></linearGradient>
+      <filter id="m1glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <marker id="m1arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5b677a"/></marker>
+      <pattern id="m1hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#f5a524" stroke-width="2" stroke-opacity=".45"/></pattern>`;
+
+    /* ---------- regions (concentric arcs) ---------- */
+    const reg = svg('g', { 'clip-path': 'url(#m1clip)' }, sv);
+    const rg3 = svg('rect', { x: X0, y: Y0 - S, width: S, height: S, fill: C[3], 'fill-opacity': .07 }, reg);
+    const rg2 = svg('circle', { cx: X0, cy: Y0, r: R2 * S, fill: C[2], 'fill-opacity': .09 }, reg);
+    const rg1 = svg('circle', { cx: X0, cy: Y0, r: R1 * S, fill: C[1], 'fill-opacity': .11 }, reg);
+    const regEl = { 1: rg1, 2: rg2, 3: rg3 };
+    const baseOp = { 1: .11, 2: .09, 3: .07 };
+    // arc strokes w/ draw-in
+    const arcs = [R1, R2].map((r, i) => svg('path', {
+      d: `M${px(0)} ${py(r)} A${r * S} ${r * S} 0 0 1 ${px(r)} ${py(0)}`,
+      fill: 'none', stroke: i ? C[2] : C[1], 'stroke-width': 1.6, 'stroke-opacity': .85, 'clip-path': 'url(#m1clip)',
+      pathLength: 100, 'stroke-dasharray': 100, 'stroke-dashoffset': 100
+    }, sv));
+    // grid
+    const grid = svg('g', { stroke: '#273449', 'stroke-dasharray': '3 5' }, sv);
+    [1/3, 2/3].forEach(t => { svg('line', { x1: px(t), y1: py(0), x2: px(t), y2: py(1) }, grid); svg('line', { x1: px(0), y1: py(t), x2: px(1), y2: py(t) }, grid); });
+    svg('rect', { x: X0, y: Y0 - S, width: S, height: S, fill: 'none', stroke: '#273449' }, sv);
+    // axes
+    svg('line', { x1: X0, y1: Y0, x2: X0 + S + 34, y2: Y0, stroke: '#5b677a', 'stroke-width': 1.5, 'marker-end': 'url(#m1arr)' }, sv);
+    svg('line', { x1: X0, y1: Y0, x2: X0, y2: Y0 - S - 34, stroke: '#5b677a', 'stroke-width': 1.5, 'marker-end': 'url(#m1arr)' }, sv);
+    svg('text', { x: X0 + S + 40, y: Y0 + 4, fill: '#8a97aa', 'font-size': 12, text: '方案' }, sv);
+    svg('text', { x: X0 - 14, y: Y0 - S - 42, fill: '#8a97aa', 'font-size': 12, text: '需求/市场' }, sv);
+    const xl = ['已有解决方案', '未使用的已有方案', '全新方案'];
+    xl.forEach((t, i) => svg('text', { x: px(i / 3 + 1/6), y: Y0 + 24, 'text-anchor': 'middle', fill: '#c8d2df', 'font-size': 12.5, text: t }, sv));
+    svg('text', { x: px(.5), y: Y0 + 50, 'text-anchor': 'middle', fill: '#5b677a', 'font-size': 11, 'letter-spacing': '.12em', text: 'SOLUTION · 解决方案维度（团队熟悉程度 ↓）' }, sv);
+    const yl = [['目前服务的', '已有市场'], ['未涉及的', '已有市场'], ['新需求 /', '新市场']];
+    yl.forEach((t, i) => { const tx = svg('text', { x: X0 - 14, y: py(i / 3 + 1/6) - 4, 'text-anchor': 'end', fill: '#c8d2df', 'font-size': 12.5 }, sv);
+      t.forEach((s, k) => svg('tspan', { x: X0 - 14, dy: k ? 17 : 0, text: s }, tx)); });
+    const yt = svg('text', { x: 26, y: py(.5), 'text-anchor': 'middle', fill: '#5b677a', 'font-size': 11, 'letter-spacing': '.12em', transform: `rotate(-90 26 ${py(.5)})`, text: 'NEED · 需求/市场维度' }, sv);
+    // level labels
+    const lvLab = [[.17, .2, 1], [.56, .5, 2], [.86, .88, 3]].map(([u, v, l]) => {
+      const g = svg('g', { opacity: 0 }, sv);
+      svg('text', { x: px(u), y: py(v), 'text-anchor': 'middle', fill: C[l], 'font-size': 13, 'font-weight': 600, text: '层次 ' + l }, g);
+      svg('text', { x: px(u), y: py(v) + 16, 'text-anchor': 'middle', fill: C[l], 'fill-opacity': .7, 'font-size': 10.5, text: ['', '低风险', '中风险', '颠覆式'][l] }, g);
+      return g;
+    });
+
+    /* ---------- quiz highlight band ---------- */
+    const qz = svg('g', { opacity: 0, 'pointer-events': 'none' }, sv);
+    svg('clipPath', { id: 'm1qclip' }, defs).appendChild(svg('rect', { x: X0, y: py(2/3), width: S * 2/3, height: S * 2/3 }));
+    const band = svg('path', {
+      d: `M${px(0)} ${py(.72)} A${.72 * S} ${.72 * S} 0 0 1 ${px(.72)} ${py(0)} L${px(.4)} ${py(0)} A${.4 * S} ${.4 * S} 0 0 0 ${px(0)} ${py(.4)}Z`,
+      fill: 'url(#m1hatch)', stroke: '#f5a524', 'stroke-width': 1.5, 'stroke-dasharray': '6 4', 'clip-path': 'url(#m1qclip)'
+    }, qz);
+    svg('rect', { x: px(1/3), y: py(2/3), width: S / 3, height: S / 3, fill: 'none', stroke: '#f5a524', 'stroke-width': 2, rx: 4, filter: 'url(#m1glow)' }, qz);
+    svg('text', { x: px(.5), y: py(2/3) - 10, 'text-anchor': 'middle', fill: '#f5a524', 'font-size': 12, 'font-weight': 600, text: '✓ 层次1 与 层次2 边界：未涉及的已有市场 × 未使用的已有方案' }, qz);
+
+    /* ---------- charter boundary (FroliCat / 华为) ---------- */
+    const ch = svg('g', { opacity: 0, 'pointer-events': 'none' }, sv);
+    const chRect = svg('rect', { x: X0 + 4, y: py(.62), width: .62 * S - 4, height: .62 * S - 4, rx: 10, fill: 'rgba(245,165,36,.05)', stroke: '#f5a524', 'stroke-width': 1.6, 'stroke-dasharray': '8 6' }, ch);
+    svg('text', { x: X0 + 14, y: py(.62) + 20, fill: '#f5a524', 'font-size': 11.5, 'font-weight': 600, text: '产品创新章程边界' }, ch);
+    svg('text', { x: X0 + 14, y: py(.62) + 36, fill: '#f5a524', 'fill-opacity': .75, 'font-size': 10.5, text: '实体产品 · 已有零售渠道 · 约 1 年' }, ch);
+
+    /* ---------- radar ---------- */
+    const radar = svg('g', { 'clip-path': 'url(#m1clip)', 'pointer-events': 'none' }, sv);
+    const wedge = svg('path', { fill: 'url(#m1sweep)' }, radar);
+    const beam = svg('line', { x1: X0, y1: Y0, stroke: 'url(#m1beam)', 'stroke-width': 1.5 }, radar);
+    const ripG = svg('g', { 'pointer-events': 'none' }, sv);
+
+    /* ---------- case pins ---------- */
+    const CASES = {
+      pg: { u: .16, v: .42, label: '宝洁 · 新型清洁剂', lv: 1 },
+      mmm: { u: .64, v: .14, label: '3M · 特殊性能聚合物', lv: 2 },
+      froli: { u: .36, v: .27, label: 'FroliCat 猫玩具', lv: 1 },
+      hw: { u: .9, v: .62, label: '华为 · 价值边界', lv: 3 }
+    };
+    const pins = svg('g', {}, sv);
+    Object.entries(CASES).forEach(([k, c]) => {
+      const g = svg('g', { class: 'pin', transform: `translate(${px(c.u)},${py(c.v)})`, opacity: 0 }, pins);
+      svg('circle', { r: 14, fill: C[c.lv], 'fill-opacity': .12 }, g);
+      svg('circle', { class: 'pc', r: 6, fill: '#0b111b', stroke: C[c.lv], 'stroke-width': 2 }, g);
+      const anchor = c.u > .7 ? 'end' : 'start';
+      svg('text', { x: anchor === 'end' ? -14 : 14, y: 4, 'text-anchor': anchor, fill: '#dbe4ef', 'font-size': 11.5, text: c.label }, g);
+      g.addEventListener('pointerdown', e => e.stopPropagation());
+      g.addEventListener('click', e => { e.stopPropagation(); openCase(k); });
+      c.el = g;
+    });
+
+    /* ---------- cursor ---------- */
+    const cg = svg('g', { 'pointer-events': 'none' }, sv);
+    const gx = svg('line', { stroke: '#4c8dff', 'stroke-opacity': .5, 'stroke-dasharray': '3 4' }, cg);
+    const gy = svg('line', { stroke: '#4c8dff', 'stroke-opacity': .5, 'stroke-dasharray': '3 4' }, cg);
+    const cur = svg('g', {}, cg);
+    const cHalo = svg('circle', { r: 22, fill: 'none', stroke: '#2fd5bf', 'stroke-opacity': .35, 'stroke-width': 1 }, cur);
+    const cRing = svg('circle', { r: 13, fill: 'rgba(47,213,191,.12)', stroke: '#2fd5bf', 'stroke-width': 2, filter: 'url(#m1glow)' }, cur);
+    svg('circle', { r: 3, fill: '#fff' }, cur);
+    [[0, -22, 0, -16], [0, 16, 0, 22], [-22, 0, -16, 0], [16, 0, 22, 0]].forEach(([a, b, c, d]) => svg('line', { x1: a, y1: b, x2: c, y2: d, stroke: '#2fd5bf', 'stroke-width': 2 }, cur));
+    const cTagBg = svg('rect', { x: 20, y: -36, rx: 6, height: 22, fill: '#0b111b', stroke: '#2fd5bf', 'stroke-opacity': .6 }, cur);
+    const cTag = svg('text', { x: 30, y: -21, fill: '#e7edf5', 'font-size': 11.5, 'font-family': 'JetBrains Mono, monospace' }, cur);
+
+    /* ---------- state ---------- */
+    const st = { u: .18, v: .16, lv: 0, radar: true, charter: false, quiz: false };
+    const hud = { big: S$('.lvl .big'), lab: S$('.lvl .lab'), desc: S$('.desc'), cu: S$('.cu'), cv: S$('.cv'), zx: S$('.zx'), zy: S$('.zy'), rv: S$('.rv'), rb: S$('.rb i') };
+
+    function place(u, v) {
+      st.u = Math.max(0, Math.min(1, u)); st.v = Math.max(0, Math.min(1, v));
+      const x = px(st.u), y = py(st.v);
+      cur.setAttribute('transform', `translate(${x},${y})`);
+      gx.setAttribute('x1', X0); gx.setAttribute('y1', y); gx.setAttribute('x2', x); gx.setAttribute('y2', y);
+      gy.setAttribute('x1', x); gy.setAttribute('y1', Y0); gy.setAttribute('x2', x); gy.setAttribute('y2', y);
+      const lv = levelOf(st.u, st.v);
+      cTag.textContent = `L${lv}  (${st.u.toFixed(2)}, ${st.v.toFixed(2)})`;
+      const flip = st.u > .72; const tw = 132;
+      cTagBg.setAttribute('width', tw); cTagBg.setAttribute('x', flip ? -20 - tw : 20); cTag.setAttribute('x', flip ? -10 - tw : 30);
+      hud.cu.textContent = st.u.toFixed(2); hud.cv.textContent = st.v.toFixed(2);
+      hud.zx.textContent = xZone(st.u); hud.zy.textContent = yZone(st.v);
+      const d = Math.hypot(st.u, st.v) / Math.SQRT2; const risk = Math.round(8 + d * 90);
+      hud.rv.textContent = risk + '%'; hud.rb.style.width = risk + '%';
+      if (lv !== st.lv) {
+        st.lv = lv;
+        hud.big.textContent = 'L' + lv; hud.big.style.color = C[lv]; hud.lab.textContent = LV[lv].short; hud.lab.style.color = C[lv];
+        hud.desc.textContent = LV[lv].desc;
+        [cRing, cHalo].forEach(e => e.setAttribute('stroke', C[lv])); cRing.setAttribute('fill', C[lv] + '22');
+        cTagBg.setAttribute('stroke', C[lv]);
+        for (const k in regEl) regEl[k].setAttribute('fill-opacity', +k === lv ? baseOp[k] * 2.2 : baseOp[k]);
+      }
+    }
+
+    /* ---------- pointer interaction ---------- */
+    function toUV(e) {
+      const p = sv.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+      const q = p.matrixTransform(sv.getScreenCTM().inverse());
+      return [(q.x - X0) / S, (Y0 - q.y) / S, q];
+    }
+    let drag = null;
+    ctx.on(sv, 'pointerdown', e => {
+      const [u, v] = toUV(e);
+      if (u < -.05 || u > 1.05 || v < -.05 || v > 1.05) return;
+      drag = { x: e.clientX, y: e.clientY, moved: false };
+      sv.setPointerCapture(e.pointerId); place(u, v); ripple();
+    });
+    ctx.on(sv, 'pointermove', e => {
+      if (!drag) return;
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) drag.moved = true;
+      const [u, v] = toUV(e); place(u, v);
+    });
+    ctx.on(sv, 'pointerup', e => {
+      if (!drag) return; const wasClick = !drag.moved; drag = null;
+      if (wasClick && !st.quiz) openLevel(st.lv);
+    });
+
+    /* ---------- ripples ---------- */
+    let ripT = 0;
+    function ripple(lv) {
+      const c = svg('circle', { cx: px(st.u), cy: py(st.v), r: 6, fill: 'none', stroke: C[lv || st.lv || 1], 'stroke-width': 1.5 }, ripG);
+      const t0 = performance.now();
+      const fn = t => { const p = (t - t0) / 1600; if (p >= 1) { c.remove(); return false; }
+        c.setAttribute('r', 6 + p * 70); c.setAttribute('stroke-opacity', (1 - p) * .8); return true; };
+      ripples.push(fn);
+    }
+    const ripples = [];
+    ctx.loop((t, dt) => {
+      // radar sweep (0°→90° ping-pong)
+      if (st.radar) {
+        const a = (Math.sin(t / 1400) * .5 + .5) * Math.PI / 2;
+        const L = S * 1.45, w = .22;
+        const a0 = Math.max(0, a - w);
+        beam.setAttribute('x2', X0 + Math.cos(a) * L); beam.setAttribute('y2', Y0 - Math.sin(a) * L);
+        wedge.setAttribute('d', `M${X0} ${Y0} L${X0 + Math.cos(a0) * L} ${Y0 - Math.sin(a0) * L} A${L} ${L} 0 0 0 ${X0 + Math.cos(a) * L} ${Y0 - Math.sin(a) * L}Z`);
+      }
+      ripT += dt; if (ripT > 1300) { ripT = 0; ripple(); }
+      for (let i = ripples.length - 1; i >= 0; i--) if (!ripples[i](t)) ripples.splice(i, 1);
+      cHalo.setAttribute('r', 20 + Math.sin(t / 300) * 3);
+    });
+
+    /* ---------- drawer content ---------- */
+    function openLevel(lv) {
+      const L = LV[lv];
+      const body = {
+        1: `<p>${L.desc}</p><h4>典型打法</h4><ul><li>核心市场扩展与优化：改进现有产品线、补齐规格</li><li>降价、提效、渠道下沉</li><li>在熟悉的需求 × 熟悉的方案内迭代</li></ul>
+            <h4>典型案例</h4><ul><li><b>宝洁</b>：顾客建议的一种新类型清洁剂——从已有市场的需求出发</li><li><b>FroliCat</b>：约 1 年、已有渠道约束下的新猫玩具</li></ul>`,
+        2: `<p>${L.desc}</p><h4>典型打法</h4><ul><li>相邻增长：把已有方案带入未涉及的已有市场</li><li>或用未使用过的已有方案服务现有顾客</li><li>需要补充部分新能力（渠道、技术或品牌）</li></ul>
+            <h4>典型案例</h4><ul><li><b>3M</b>：一种具有特殊性能的聚合物——技术先行，再寻找可服务的需求</li></ul>`,
+        3: `<p>${L.desc}</p><h4>典型打法</h4><ul><li>全新需求 × 全新方案的"世界首创"</li><li>需要长周期、探索式投入与容错机制</li><li>常伴随颠覆式创新（见模块四）</li></ul>
+            <h4>边界提醒</h4><div class="quote">“在我们公司的创新问题上，一定要强调价值理论，不是为了创新而创新，一定是为了创造价值。”——华为</div>`
+      }[lv];
+      ctx.drawer.open({ tag: 'Level ' + lv + ' · 机会层次', title: L.name, accent: C[lv],
+        html: `<div class="eyebrow">不确定性</div><div class="meter"><i data-w="${L.risk * 100}%" style="background:${C[lv]}"></i></div>${body}
+               <h4>机会的定义</h4><p style="color:var(--muted)">在产品开发中，机会是关于开发新产品的任何想法：一个初步描述、一种新需求、一项新技术，或需求与可能方案之间的初步联系。</p>` });
+    }
+    function openCase(k) {
+      const html = {
+        pg: `<div class="kv"><b>公司类型</b><span>消费品</span><b>机会形态</b><span>顾客建议的新类型清洁剂</span><b>主维度</b><span>需求 / 市场</span></div><p>对生产消费品的公司来说，机会常常直接来自顾客需求——描述可能只有一个概括性标题和产品概念轮廓。</p>`,
+        mmm: `<div class="kv"><b>公司类型</b><span>材料</span><b>机会形态</b><span>具有特殊性能的聚合物</span><b>主维度</b><span>解决方案 / 技术</span></div><p>对材料公司来说，机会可能先是一项技术，然后再去寻找它能满足的需求——方向与宝洁相反。</p>`,
+        froli: `<div class="quote">研发出一款新的宠物猫玩具实体产品，通过我们已有的零售销售渠道在大约一年之内向市场推出。</div><h4>章程中的约束条件</h4><ul><li>产品形态：<b>实体</b>产品（非软件 / 服务）</li><li>品类：宠物<b>猫</b>玩具</li><li>渠道：<b>已有零售</b>渠道</li><li>时间：约 <b>1 年</b>内上市</li></ul><p>→ 这些约束把可探索空间锁定在层次 1 与层次 2 边界附近。打开「章程边界」可在矩阵中看到。</p>`,
+        hw: `<p>产品创新章程（Innovation Charter）为创新工作划定边界条件。</p><div class="quote">“在我们公司的创新问题上，一定要强调价值理论，不是为了创新而创新，一定是为了创造价值。”</div><p>即使在层次 3 的高不确定区域，价值创造仍是筛选机会的底线。</p>`
+      }[k];
+      const c = CASES[k];
+      ctx.drawer.open({ tag: 'Case · 典型案例', title: c.label, accent: C[c.lv], html });
+      moveTo(c.u, c.v, 700);
+    }
+
+    /* ---------- tools ---------- */
+    function setCharter(on) {
+      st.charter = on; S$('[data-a=charter]').classList.toggle('on', on);
+      const o0 = +ch.getAttribute('opacity'); ctx.tween(500, p => ch.setAttribute('opacity', o0 + ((on ? 1 : 0) - o0) * p));
+    }
+    function showQuiz(on) {
+      st.quiz = on; S$('.quiz').classList.toggle('show', on); S$('[data-a=quiz]').classList.toggle('on', on);
+      const fb = S$('.quiz .fb'); fb.className = 'fb'; fb.textContent = '';
+      if (!on) qz.setAttribute('opacity', 0);
+    }
+    function reveal() {
+      ctx.tween(600, p => qz.setAttribute('opacity', p));
+      const fb = S$('.quiz .fb'); fb.className = 'fb ok';
+      fb.innerHTML = '答案：<b>层次1 与 层次2 的边界</b>——「未涉及的已有需求/市场」×「未使用的已有解决方案」。在已有产品基础上 1 年内上市，需要可控的风险，但又要有新增长。';
+    }
+    function submit() {
+      const d = Math.hypot(st.u, st.v);
+      const ok = st.u < .7 && st.v < .7 && d > .36 && d < .78;
+      if (ok) { reveal(); ripple(1); }
+      else {
+        const fb = S$('.quiz .fb'); fb.className = 'fb no';
+        fb.textContent = st.lv === 3 ? '风险过高：层次 3 的不确定性无法在 1 年内基于已有产品完成。' :
+          d <= .36 ? '偏保守：这只是现有产品的优化，增长空间有限。再向外探一点？' : '再想想：需要同时兼顾"已有基础"与"新增长"。';
+      }
+    }
+    root.querySelectorAll('[data-a]').forEach(b => ctx.on(b, 'click', () => {
+      const a = b.dataset.a;
+      if (a === 'detail') openLevel(st.lv);
+      if (a === 'charter') { setCharter(!st.charter); if (st.charter) openCase('froli'); }
+      if (a === 'radar') { st.radar = !st.radar; b.classList.toggle('on', st.radar); radar.setAttribute('opacity', st.radar ? 1 : 0); }
+      if (a === 'quiz') showQuiz(!st.quiz);
+      if (a === 'submit') submit();
+      if (a === 'reveal') reveal();
+    }));
+
+    /* ---------- console slot ---------- */
+    ctx.console.innerHTML = '';
+    [['L1', .2, .18], ['L2', .52, .45], ['L3', .88, .86]].forEach(([n, u, v], i) => {
+      const b = ctx.h(`<button class="btn sm"><i style="width:8px;height:8px;border-radius:2px;background:${C[i + 1]};display:inline-block"></i>跳转 ${n}</button>`);
+      ctx.on(b, 'click', () => { moveTo(u, v); openLevel(i + 1); });
+      ctx.console.appendChild(b);
+    });
+
+    function moveTo(u, v, ms = 1100) { const u0 = st.u, v0 = st.v; return ctx.tween(ms, p => place(u0 + (u - u0) * p, v0 + (v - v0) * p)); }
+
+    /* ---------- intro animation ---------- */
+    place(st.u, st.v);
+    ctx.tween(1400, p => arcs.forEach((a, i) => a.setAttribute('stroke-dashoffset', 100 - 100 * Math.min(1, p * 1.3 - i * .3 > 0 ? p * 1.3 - i * .3 : 0))));
+    lvLab.forEach((g, i) => setTimeout(() => ctx.tween(500, p => g.setAttribute('opacity', p)), 500 + i * 220));
+    Object.values(CASES).forEach((c, i) => setTimeout(() => ctx.tween(400, p => c.el.setAttribute('opacity', p)), 1100 + i * 140));
+
+    /* ---------- tour ---------- */
+    return {
+      reset() { showQuiz(false); setCharter(false); },
+      async tour(ctx, prog) {
+        const steps = [
+          async () => { ctx.caption('横轴是「解决方案」维度：团队对可能采用的方案熟悉到什么程度；纵轴是「需求/市场」维度。'); await moveTo(.05, .05, 900); await ctx.wait(3600); },
+          async () => { ctx.caption('层次 1 · 低风险：市场发展快、已有产品降价快——核心市场的扩展与优化。'); await moveTo(.22, .2); openLevel(1); await ctx.wait(4200); },
+          async () => { ctx.caption('层次 2 · 中风险：机会被推向市场、技术或两者都鲜为人知的领域——相邻增长。'); await moveTo(.55, .5); openLevel(2); await ctx.wait(4200); },
+          async () => { ctx.caption('层次 3 · 颠覆式：尝试开拓世界领先的方法，不确定性最大。'); await moveTo(.88, .86); openLevel(3); await ctx.wait(4200); },
+          async () => { ctx.caption('创新章程给机会探索划出边界：FroliCat——实体猫玩具、已有零售渠道、约 1 年上市。'); ctx.drawer.close(); setCharter(true); await ctx.wait(400); openCase('froli'); await ctx.wait(4600); },
+          async () => { ctx.caption('思考：已有产品基础上 1 年内上市，光标应落在哪里？'); ctx.drawer.close(); setCharter(false); showQuiz(true); await moveTo(.5, .5, 1300); await ctx.wait(1800); reveal(); ctx.caption('答案：层次 1 与层次 2 的边界——未涉及的已有市场 × 未使用的已有方案。'); await ctx.wait(4400); showQuiz(false); }
+        ];
+        for (let i = 0; i < steps.length; i++) { prog(i / steps.length); await steps[i](); }
+        prog(1);
+      }
+    };
+  }
+});
+
+
+/* =====================================================================
+   MODULE 2 · 机会挖掘的 7 种武器
+   ===================================================================== */
+NPD.registerModule({
+  id: 'm2', index: 2, title: '机会挖掘 7 种武器', en: 'Opportunity Generation Radar',
+  mount(ctx) {
+    const { svg, h } = ctx;
+    const COL = { teal: '#2fd5bf', blue: '#4c8dff', amber: '#f5a524', slate: '#94a3b8' };
+    const SRC = [
+      { k: '企业内部', v: 46, c: COL.teal, links: [1, 2, 3], note: '个人兴趣、内部错误列表、组织能力（VRIO）都是内部机会的主要来源。' },
+      { k: '顾客', v: 23, c: COL.blue, links: [2, 4, 7], note: '顾客抱怨、细分客户群研究、领先用户——让需求自己"说话"。' },
+      { k: '竞争产品', v: 11, c: COL.amber, links: [6], note: '竞品成功等于公开了一个待探索的领域：效仿，但做得更好。' },
+      { k: '销售 / 高校 / 独立发明人等', v: 20, c: COL.slate, links: [5, 7], note: '宏观趋势、高校与政府研究机构、社交网络与线上意见收集。' }
+    ];
+
+    /* ---------- the 7 weapons ---------- */
+    const W7 = [
+      { n: 1, t: '培养个人兴趣', en: 'Follow a Personal Passion', src: '内部',
+        lead: '保持热情，并思考新技术、市场趋势与商业模式会如何影响你的兴趣领域，识别其中未被满足的需求。',
+        case: '自行车骑行营养输送系统：发明人在骑行中补给不便——把爱好里的痛点变成产品。',
+        anim: () => `<svg viewBox="0 0 300 170" width="100%" height="100%">
+            <defs><linearGradient id="tube" x1="0" x2="1"><stop offset="0" stop-color="#2fd5bf"/><stop offset="1" stop-color="#4c8dff"/></linearGradient></defs>
+            <line x1="0" y1="150" x2="300" y2="150" stroke="#273449" stroke-dasharray="10 8"><animate attributeName="stroke-dashoffset" from="0" to="36" dur=".6s" repeatCount="indefinite"/></line>
+            <g stroke="#c8d2df" stroke-width="2.5" fill="none">
+              <g transform="translate(95 120)"><circle r="28"/><g><line x1="-28" y1="0" x2="28" y2="0"/><line x1="0" y1="-28" x2="0" y2="28"/><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1s" repeatCount="indefinite"/></g></g>
+              <g transform="translate(205 120)"><circle r="28"/><g><line x1="-28" y1="0" x2="28" y2="0"/><line x1="0" y1="-28" x2="0" y2="28"/><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1s" repeatCount="indefinite"/></g></g>
+              <path d="M95 120 L135 70 L190 70 L205 120 M135 70 L150 120 L95 120 M150 120 L190 70 M130 58 L145 58 M190 70 L196 52 L212 50"/>
+            </g>
+            <rect x="112" y="78" width="30" height="16" rx="4" fill="#4c8dff" fill-opacity=".25" stroke="#4c8dff"/>
+            <path id="tb" d="M127 78 C127 40, 170 30, 205 46" fill="none" stroke="url(#tube)" stroke-width="3" stroke-dasharray="4 6"><animate attributeName="stroke-dashoffset" from="20" to="0" dur=".7s" repeatCount="indefinite"/></path>
+            <circle r="3.5" fill="#2fd5bf"><animateMotion dur="1.4s" repeatCount="indefinite" path="M127 78 C127 40, 170 30, 205 46"/></circle>
+            <circle r="3.5" fill="#2fd5bf"><animateMotion dur="1.4s" begin=".7s" repeatCount="indefinite" path="M127 78 C127 40, 170 30, 205 46"/></circle>
+            <text x="10" y="22" fill="#8a97aa" font-size="11">骑行中免手持补给 · 营养输送</text>
+          </svg>` },
+      { n: 2, t: '编写错误列表', en: 'Compile Bug Lists', src: '内部 / 顾客',
+        lead: '记下几天或几周内遇到的不满、困扰与失望，挑出最普遍的问题——任何问题都蕴藏着机会。',
+        case: '汽车社交媒体大数据：统计十大特征主题关注度与细粒度"抱怨"词云。',
+        anim: () => {
+          const words = [['座椅偏硬', 22, COL.amber], ['胎噪大', 21, COL.amber], ['车机卡顿', 18, COL.blue], ['隔音差', 15, COL.blue], ['续航虚标', 16, COL.teal], ['异响', 14, COL.slate], ['空调异味', 12, COL.slate], ['后排空间小', 12, COL.teal], ['油耗高', 13, COL.blue], ['导航不准', 11, COL.slate], ['悬挂偏硬', 12, COL.slate], ['钥匙失灵', 10, COL.slate]];
+          const pos = [[34, 40], [58, 66], [30, 72], [70, 30], [52, 18], [16, 22], [78, 56], [22, 90], [74, 82], [48, 92], [76, 10], [14, 56]];
+          return words.map(([w, s, c], i) => `<span class="wc-word" style="left:${pos[i][0]}%;top:${pos[i][1]}%;transform:translate(-50%,-50%);font-size:${s}px;color:${c};animation-delay:${i * .12}s, ${i * .3}s">${w}</span>`).join('') +
+            `<span style="position:absolute;left:10px;bottom:8px;font-size:10.5px;color:var(--dim)">抱怨词云 · 字号 = 提及频次</span>`;
+        } },
+      { n: 3, t: '从能力中挖掘', en: 'Leverage Capabilities · VRIO', src: '内部',
+        lead: '竞争优势来自独特资源。资源须同时满足四个特征，才能撑起新产品机会。',
+        case: '苹果：完美的工业设计 · 领导性的品牌 · 忠实的用户群 → 可延展到更多品类。',
+        anim: () => [['V', '有价值 Valuable', '让公司绩效优于对手'], ['R', '稀有 Rare', '竞争者难以获得'], ['I', '难以模仿 Inimitable', '不能被轻易效仿'], ['O', '不可替代 Non-substitutable', '没有等效替代资源']]
+          .map(([l, a, b], i) => `<div class="vrio-row" style="animation-delay:${i * .35}s"><span class="L">${l}</span><div>${a}<small>${b}</small></div><span class="ck" style="animation-delay:${i * .35 + .3}s">✓</span></div>`).join('') +
+          `<div class="vrio-row" style="animation-delay:1.6s;border-color:rgba(47,213,191,.35);background:var(--teal-a)"><span class="L" style="background:rgba(47,213,191,.2);color:var(--teal)">★</span><div>苹果：设计 · 品牌 · 忠诚用户<small>→ 新产品机会的护城河</small></div></div>` },
+      { n: 4, t: '研究细分客户群', en: 'Study Customers · Ethnography', src: '顾客',
+        lead: '用户人类学 / 消费者民族志：长时间观察，比问卷更能看清真实需求——人们说的与做的常常不同。',
+        case: 'Shimano：研究美国人为何不骑车，最终为休闲骑行者开发 Coasting 部件线。',
+        anim: () => `<div class="tl">${[['问题', '为什么美国人不骑自行车？'], ['发现', '说的 ≠ 做的：问卷失真'], ['观察', '长时间记录潜在用户的骑行时间'], ['潜在需求', '技术简单 · 易用 · 易学'], ['目标群体', '家庭出游、去海滩的业余骑行者'], ['产出', 'Coasting 部件线 → 整车厂组装']]
+          .map(([a, b], i) => `<div class="tl-step${i === 5 ? ' hl' : ''}" style="animation-delay:${i * .32}s"><b>${a}</b> <span>· ${b}</span></div>`).join('')}</div>` },
+      { n: 5, t: '把握宏观市场趋势', en: 'Consider Trends', src: '外部',
+        lead: '技术发展、人口变化、社会规范改变常常催生新机会：列举趋势，再推演其中的创新机会。',
+        case: '移动通信普及 → 信息传输服务；环保意识 → 绿色产品；人口结构变化 → 新型媒体与适老产品。',
+        anim: () => [['移动互联普及', '各类信息传输服务'], ['说西班牙语人口增长', '新型西班牙语媒体'], ['环保意识增强', '绿色产品与服务'], ['人口老龄化', '适老化产品与服务']]
+          .map(([a, b], i) => `<div class="tr-row" style="animation-delay:${i * .3}s"><span class="a">${a}</span><span class="arr"></span><span class="b">${b}</span></div>`).join('') +
+          `<div style="position:absolute;left:12px;bottom:8px;font-size:10.5px;color:var(--dim)">社会 · 环境 · 技术 · 经济 趋势 → 机会</div>` },
+      { n: 6, t: '效仿但更好', en: 'Imitate, but Better', src: '竞品',
+        lead: '一家公司成功创新，实际上公开了一个极佳的待探索领域：思考该需求的其他方案，或该方案能满足的其他需求。',
+        case: 'SpinBrush 旋转电动牙刷、星巴克——在成熟甚至低迷的品类里找到新切口。',
+        anim: () => `<div class="cmp">
+            <div class="c old" style="animation-delay:0s"><h5>传统电动牙刷</h5>价格高 · 充电底座 · 小众</div>
+            <div class="c new" style="animation-delay:.35s"><h5>SpinBrush</h5>电池驱动旋转刷头 · 平价 · 大众可及</div>
+            <div class="c old" style="animation-delay:.7s"><h5>普通咖啡</h5>低迷的大众商品</div>
+            <div class="c new" style="animation-delay:1.05s"><h5>星巴克</h5>体验化、空间化的咖啡消费</div>
+          </div><div class="tactics">${['商品小众化', '低迷市场中开拓创新点', '引进地区特色'].map((t, i) => `<span style="animation-delay:${1.4 + i * .2}s">${t}</span>`).join('')}</div>` },
+      { n: 7, t: '挖掘外部生态资源', en: 'Tap External Sources', src: '顾客 / 外部',
+        lead: '一半的机会来自组织外部：主动培育外部资源，把散落的创意接入开发流程。',
+        case: '领先用户 · 社交网络与论坛 · 大学与政府研究机构 · 戴尔 IdeaStorm 线上意见收集。',
+        anim: () => {
+          const N = [['领先用户', 60, 34], ['社交网络', 240, 34], ['高校/研究所', 60, 140], ['IdeaStorm', 240, 140]];
+          return `<svg viewBox="0 0 300 175" width="100%" height="100%">${N.map(([t, x, y], i) => `
+            <line x1="150" y1="87" x2="${x}" y2="${y}" stroke="#273449" stroke-width="1.5"/>
+            <circle r="3" fill="${['#2fd5bf', '#4c8dff', '#f5a524', '#94a3b8'][i]}"><animateMotion dur="1.6s" begin="${i * .4}s" repeatCount="indefinite" path="M${x} ${y} L150 87"/></circle>
+            <g transform="translate(${x} ${y})"><rect x="-42" y="-13" width="84" height="26" rx="8" fill="#0f1622" stroke="${['#2fd5bf', '#4c8dff', '#f5a524', '#94a3b8'][i]}" stroke-opacity=".7"/>
+            <text text-anchor="middle" y="4" fill="#dbe4ef" font-size="11">${t}</text></g>`).join('')}
+            <circle cx="150" cy="87" r="22" fill="rgba(47,213,191,.12)" stroke="#2fd5bf"><animate attributeName="r" values="20;25;20" dur="1.6s" repeatCount="indefinite"/></circle>
+            <text x="150" y="91" text-anchor="middle" fill="#2fd5bf" font-size="11" font-weight="600">NPD</text></svg>`;
+        } }
+    ];
+
+    /* ---------- layout ---------- */
+    const root = h(`
+      <div class="m2">
+        <div class="m2-left">
+          <div class="panel donut-wrap">
+            <div class="eyebrow">Source Mix · 创新机会来源分布</div>
+            <svg viewBox="0 0 220 220"></svg>
+            <div class="src-list"></div>
+          </div>
+          <div class="panel ie-bar">
+            <div class="eyebrow">内部 vs 外部</div>
+            <div class="track"><i style="background:var(--teal)"></i><i style="background:linear-gradient(90deg,var(--blue),var(--slate))"></i></div>
+            <div class="lbl"><span>企业内部 46%</span><span>外部来源 54%</span></div>
+            <p class="h-sub" style="margin-top:8px">约一半机会来自企业内部，另一半来自顾客及其他外部资源——两边都要看。</p>
+          </div>
+        </div>
+        <div class="m2-wheel">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end">
+            <div><div class="eyebrow">Module 02 · Opportunity Generation</div><div class="h-title">机会挖掘的 7 种武器</div></div>
+            <div class="h-sub">悬停高亮 · 点击翻牌查看案例</div>
+          </div>
+          <svg viewBox="0 0 700 640" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <div class="m2-right">
+          <div class="flip"><div class="flip-in">
+            <div class="face front idle"><div class="eyebrow">Choose a weapon</div><div class="big7">7</div><div style="font-size:15px;font-weight:600;margin-top:8px">种结构化挖掘途径</div><p class="h-sub" style="margin-top:8px;max-width:240px">提出新想法常常太抽象、没有结构、自由度太高——这 7 种途径让机会挖掘有章可循。</p></div>
+            <div class="face back"></div>
+          </div></div>
+        </div>
+      </div>`);
+    ctx.stage.appendChild(root);
+    const Q = s => root.querySelector(s);
+
+    /* ---------- donut ---------- */
+    const dsv = Q('.donut-wrap svg');
+    svg('circle', { cx: 110, cy: 110, r: 80, fill: 'none', stroke: '#1c2738', 'stroke-width': 24 }, dsv);
+    const dg = svg('g', { transform: 'rotate(-90 110 110)' }, dsv);
+    const gap = .6; let acc = 0;
+    const segs = SRC.map((s, i) => {
+      const e = svg('circle', { class: 'seg', cx: 110, cy: 110, r: 80, fill: 'none', stroke: s.c, 'stroke-width': 24, pathLength: 100,
+        'stroke-dasharray': `0 100`, 'stroke-dashoffset': -acc }, dg);
+      s.off = acc; acc += s.v; return e;
+    });
+    const cTxt = svg('text', { x: 110, y: 108, 'text-anchor': 'middle', fill: '#e7edf5', 'font-size': 34, 'font-weight': 700, 'font-family': 'JetBrains Mono, monospace', text: '0%' }, dsv);
+    const cSub = svg('text', { x: 110, y: 132, 'text-anchor': 'middle', fill: '#8a97aa', 'font-size': 12, text: '企业内部' }, dsv);
+    const list = Q('.src-list');
+    const items = SRC.map((s, i) => {
+      const it = h(`<div class="src-item"><i style="background:${s.c}"></i><span>${s.k}</span><b>${s.v}%</b></div>`);
+      list.appendChild(it);
+      ctx.on(it, 'mouseenter', () => focusSrc(i)); ctx.on(it, 'mouseleave', () => focusSrc(-1));
+      ctx.on(it, 'click', () => openSrc(i));
+      ctx.on(segs[i], 'mouseenter', () => focusSrc(i)); ctx.on(segs[i], 'mouseleave', () => focusSrc(-1));
+      ctx.on(segs[i], 'click', () => openSrc(i));
+      return it;
+    });
+    // draw-in
+    ctx.tween(1400, p => {
+      SRC.forEach((s, i) => { const len = Math.max(0, Math.min(s.v, p * 100 - s.off)); segs[i].setAttribute('stroke-dasharray', `${Math.max(0, len - gap)} ${100}`); });
+      if (!st.focusSrc) cTxt.textContent = Math.round(46 * Math.min(1, p * 2.2)) + '%';
+    }, ctx.ease.out);
+    setTimeout(() => { const t = root.querySelectorAll('.ie-bar .track i'); t[0].style.width = '46%'; t[1].style.width = '54%'; }, 300);
+
+    function focusSrc(i) {
+      st.focusSrc = i >= 0;
+      segs.forEach((s, k) => { s.classList.toggle('dim', i >= 0 && k !== i); s.setAttribute('stroke-width', k === i ? 30 : 24); });
+      items.forEach((it, k) => it.classList.toggle('on', k === i));
+      const s = SRC[i >= 0 ? i : 0];
+      cTxt.textContent = s.v + '%'; cTxt.setAttribute('fill', i >= 0 ? s.c : '#e7edf5');
+      cSub.textContent = i >= 0 ? (s.k.length > 8 ? '其他外部' : s.k) : '企业内部';
+      nodes.forEach((n, k) => n.g.classList.toggle('linked', i >= 0 && s.links.includes(k + 1)));
+    }
+    function openSrc(i) {
+      const s = SRC[i];
+      ctx.drawer.open({ tag: 'Source · 机会来源', title: `${s.k} · ${s.v}%`, accent: s.c,
+        html: `<div class="meter"><i data-w="${s.v * 2}%" style="background:${s.c}"></i></div><p>${s.note}</p><h4>关联的挖掘途径</h4><ul>${s.links.map(n => `<li>${['①', '②', '③', '④', '⑤', '⑥', '⑦'][n - 1]} ${W7[n - 1].t}</li>`).join('')}</ul>
+               <h4>提醒</h4><p style="color:var(--muted)">团队往往会在这一过程中识别出几十甚至上百个原始机会；难点在于提出想法的过程太抽象、缺乏结构、自由度太高。</p>` });
+    }
+
+    /* ---------- wheel ---------- */
+    const wsv = Q('.m2-wheel svg');
+    const CX = 350, CY = 330, R = 210;
+    const wdefs = svg('defs', {}, wsv);
+    wdefs.innerHTML = `
+      <radialGradient id="m2core"><stop offset="0" stop-color="#4c8dff" stop-opacity=".25"/><stop offset="1" stop-color="#4c8dff" stop-opacity="0"/></radialGradient>
+      <linearGradient id="m2sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2fd5bf" stop-opacity="0"/><stop offset="1" stop-color="#2fd5bf" stop-opacity=".28"/></linearGradient>
+      <filter id="m2glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>`;
+    // concentric rings
+    [.35, .62, .88, 1.12].forEach((k, i) => svg('circle', { cx: CX, cy: CY, r: R * k, fill: 'none', stroke: '#1c2738', 'stroke-dasharray': i % 2 ? '2 6' : '' }, wsv));
+    svg('circle', { cx: CX, cy: CY, r: R * .9, fill: 'url(#m2core)' }, wsv);
+    const sweep = svg('path', { d: `M${CX} ${CY} L${CX + R * 1.12} ${CY} A${R * 1.12} ${R * 1.12} 0 0 0 ${CX + R * 1.12 * Math.cos(-.5)} ${CY + R * 1.12 * Math.sin(-.5)}Z`, fill: 'url(#m2sw)' }, wsv);
+    const V = W7.map((w, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 7; return { a, x: CX + Math.cos(a) * R, y: CY + Math.sin(a) * R }; });
+    // heptagon
+    const hept = svg('polygon', { points: V.map(p => `${p.x},${p.y}`).join(' '), fill: 'rgba(76,141,255,.04)', stroke: '#4c8dff', 'stroke-opacity': .45, 'stroke-width': 1.3, pathLength: 100, 'stroke-dasharray': 100, 'stroke-dashoffset': 100 }, wsv);
+    ctx.tween(1600, p => hept.setAttribute('stroke-dashoffset', 100 - 100 * p));
+    // spokes
+    const spokes = V.map(p => svg('line', { x1: CX, y1: CY, x2: p.x, y2: p.y, stroke: '#273449', 'stroke-width': 1 }, wsv));
+    // particles along edges
+    const pg = svg('g', {}, wsv);
+    const parts = Array.from({ length: 42 }, (_, i) => ({ s: Math.random() * 7, sp: .00006 + Math.random() * .00008, el: svg('circle', { r: Math.random() * 1.6 + .8, fill: i % 3 ? '#4c8dff' : '#2fd5bf', 'fill-opacity': .8 }, pg) }));
+    // spoke beam particles (selected)
+    const beamDots = Array.from({ length: 4 }, () => svg('circle', { r: 2.6, fill: '#2fd5bf', opacity: 0, filter: '' }, wsv));
+    // hub
+    const hub = svg('g', {}, wsv);
+    svg('circle', { cx: CX, cy: CY, r: 74, fill: '#0b111b', stroke: '#273449' }, hub);
+    const hubRing = svg('circle', { cx: CX, cy: CY, r: 74, fill: 'none', stroke: '#2fd5bf', 'stroke-width': 2, pathLength: 100, 'stroke-dasharray': '0 100', transform: `rotate(-90 ${CX} ${CY})` }, hub);
+    const hubN = svg('text', { x: CX, y: CY - 4, 'text-anchor': 'middle', fill: '#2fd5bf', 'font-size': 30, 'font-weight': 700, 'font-family': 'JetBrains Mono, monospace', text: '7' }, hub);
+    const hubT = svg('text', { x: CX, y: CY + 22, 'text-anchor': 'middle', fill: '#8a97aa', 'font-size': 12.5, text: '机会挖掘途径' }, hub);
+    // nodes
+    const nodes = W7.map((w, i) => {
+      const p = V[i]; const g = svg('g', { class: 'wnode', transform: `translate(${p.x},${p.y})`, opacity: 0 }, wsv);
+      svg('circle', { class: 'pulse', r: 34, fill: 'none', stroke: '#2fd5bf', 'stroke-width': 1.5 }, g);
+      svg('circle', { class: 'core', r: 34, fill: '#0f1622' }, g);
+      svg('circle', { class: 'ring', r: 34, fill: 'none', stroke: '#33435c', 'stroke-width': 1.5 }, g);
+      svg('text', { y: 7, 'text-anchor': 'middle', fill: '#e7edf5', 'font-size': 20, 'font-weight': 700, 'font-family': 'JetBrains Mono, monospace', text: w.n }, g);
+      const ca = Math.cos(p.a), sa = Math.sin(p.a);
+      const lx = ca * 50, ly = sa * 50 + (Math.abs(ca) < .3 ? (sa < 0 ? -6 : 14) : 4);
+      const anchor = Math.abs(ca) < .3 ? 'middle' : ca > 0 ? 'start' : 'end';
+      svg('text', { x: lx, y: ly, 'text-anchor': anchor, fill: '#dbe4ef', 'font-size': 14, 'font-weight': 600, text: w.t }, g);
+      svg('text', { x: lx, y: ly + 16, 'text-anchor': anchor, fill: '#5b677a', 'font-size': 10.5, 'font-family': 'JetBrains Mono, monospace', text: w.src }, g);
+      ctx.on(g, 'click', () => select(i));
+      ctx.on(g, 'mouseenter', () => { if (st.sel < 0) hubPreview(i); spokes[i].setAttribute('stroke', '#3d5170'); });
+      ctx.on(g, 'mouseleave', () => { if (st.sel < 0) hubPreview(-1); if (st.sel !== i) spokes[i].setAttribute('stroke', '#273449'); });
+      setTimeout(() => ctx.tween(500, k => { g.setAttribute('opacity', k); g.setAttribute('transform', `translate(${p.x},${p.y}) scale(${.6 + .4 * k})`); }, ctx.ease.out), 400 + i * 120);
+      return { g, p };
+    });
+
+    const st = { sel: -1, angle: 0, focusSrc: false, auto: false };
+    function hubPreview(i) {
+      hubN.textContent = i < 0 ? '7' : ['①', '②', '③', '④', '⑤', '⑥', '⑦'][i];
+      hubT.textContent = i < 0 ? '机会挖掘途径' : W7[i].t;
+    }
+
+    /* ---------- flip card ---------- */
+    const flipIn = Q('.flip-in'), faces = [Q('.face.front'), Q('.face.back')];
+    function cardHTML(w) {
+      return `<div class="num">WEAPON 0${w.n} · ${w.src}</div><h3>${w.t}</h3><div class="en">${w.en}</div>
+        <div class="lead">${w.lead}</div><div class="anim">${w.anim()}</div>
+        <div class="foot"><span>${w.case}</span></div>
+        <div style="margin-top:10px;display:flex;gap:8px"><button class="btn sm" data-more>深入解析</button><button class="btn sm" data-next>下一个 →</button></div>`;
+    }
+    function select(i) {
+      if (i === st.sel) { openWeapon(i); return; }
+      st.sel = i;
+      nodes.forEach((n, k) => n.g.classList.toggle('sel', k === i));
+      spokes.forEach((s, k) => { s.setAttribute('stroke', k === i ? '#2fd5bf' : '#273449'); s.setAttribute('stroke-width', k === i ? 1.8 : 1); });
+      hubPreview(i);
+      ctx.tween(600, p => hubRing.setAttribute('stroke-dasharray', `${((i + 1) / 7) * 100 * p} 100`));
+      // flip
+      st.angle += 180;
+      const showBack = (st.angle / 180) % 2 === 1;
+      const face = faces[showBack ? 1 : 0];
+      face.className = 'face ' + (showBack ? 'back' : 'front');
+      face.innerHTML = cardHTML(W7[i]);
+      face.querySelector('[data-more]').onclick = () => openWeapon(i);
+      face.querySelector('[data-next]').onclick = () => select((i + 1) % 7);
+      flipIn.style.transform = `rotateY(${st.angle}deg)`;
+    }
+    function openWeapon(i) {
+      const w = W7[i];
+      const extra = {
+        1: '<li>先从热爱的领域出发，再叠加技术、趋势、商业模式三种透镜</li><li>你自己就是第一位"领先用户"</li>',
+        2: '<li>机会不一定来自你自己：顾客抱怨、市场调查同样是错误列表</li><li>设身处地，置身于使用产品或服务的人群中</li><li>智能时代：用大数据与 AI 对社交媒体文本做主题与观点分析</li>',
+        3: '<li>资源 = 能力 + 核心竞争力 + 竞争优势</li><li>四个特征缺一不可，否则优势会被模仿或替代</li><li>问自己：我们的资源还能让哪些产品成立？</li>',
+        4: '<li>观察优先于询问：记录真实行为</li><li>找到被主流方案忽略的细分人群</li><li>Shimano 本身是零件商，通过部件线撬动整车生态</li>',
+        5: '<li>列出社会、环境、技术、经济趋势</li><li>对每一条趋势追问："在这种条件下会出现什么新需求？"</li>',
+        6: '<li>思考同一需求的其他可行方案</li><li>或同一方案能满足的其他需求</li><li>策略：商品小众化 · 低迷市场开拓 · 引进地区特色</li>',
+        7: '<li>领先用户：现有产品无法满足其需求的用户群体</li><li>社交网络与论坛促进创新者交流</li><li>大学与政府研究机构：最新研究成果</li><li>线上意见收集：如戴尔 IdeaStorm</li>'
+      }[w.n];
+      ctx.drawer.open({ tag: `Weapon 0${w.n} · ${w.en}`, title: w.t, html: `<p>${w.lead}</p><h4>案例</h4><div class="quote" style="border-color:var(--teal);background:var(--teal-a);color:#c5f6ee">${w.case}</div><h4>方法要点</h4><ul>${extra}</ul><h4>机会来源</h4><span class="chip">${w.src}</span>` });
+    }
+
+    /* ---------- animation loop ---------- */
+    let sa = 0;
+    ctx.loop((t, dt) => {
+      sa += dt * .0006;
+      sweep.setAttribute('transform', `rotate(${sa * 57.3} ${CX} ${CY})`);
+      parts.forEach(pt => {
+        pt.s = (pt.s + pt.sp * dt * 7) % 7;
+        const k = Math.floor(pt.s), f = pt.s - k, A = V[k], B = V[(k + 1) % 7];
+        pt.el.setAttribute('cx', A.x + (B.x - A.x) * f); pt.el.setAttribute('cy', A.y + (B.y - A.y) * f);
+      });
+      if (st.sel >= 0) {
+        const P = V[st.sel];
+        beamDots.forEach((d, j) => { const f = ((t / 1400) + j / 4) % 1; d.setAttribute('cx', P.x + (CX - P.x) * f); d.setAttribute('cy', P.y + (CY - P.y) * f); d.setAttribute('opacity', Math.sin(f * Math.PI)); });
+      }
+    });
+
+    /* ---------- console ---------- */
+    const autoBtn = h('<button class="btn sm">轮盘自动巡航</button>');
+    let autoTimer = 0;
+    ctx.on(autoBtn, 'click', () => {
+      st.auto = !st.auto; autoBtn.classList.toggle('on', st.auto);
+      clearInterval(autoTimer);
+      if (st.auto) { select((st.sel + 1) % 7); autoTimer = setInterval(() => select((st.sel + 1) % 7), 3600); }
+    });
+    const resetBtn = h('<button class="btn sm">复位</button>');
+    ctx.on(resetBtn, 'click', reset);
+    ctx.console.append(autoBtn, resetBtn);
+    function reset() {
+      clearInterval(autoTimer); st.auto = false; autoBtn.classList.remove('on');
+      if (st.sel >= 0) {
+        st.sel = -1; nodes.forEach(n => n.g.classList.remove('sel')); spokes.forEach(s => { s.setAttribute('stroke', '#273449'); s.setAttribute('stroke-width', 1); });
+        beamDots.forEach(d => d.setAttribute('opacity', 0)); hubPreview(-1); hubRing.setAttribute('stroke-dasharray', '0 100');
+        st.angle += (st.angle / 180) % 2 === 1 ? 180 : 0;
+        const f = faces[0]; f.className = 'face front idle';
+        f.innerHTML = `<div class="eyebrow">Choose a weapon</div><div class="big7">7</div><div style="font-size:15px;font-weight:600;margin-top:8px">种结构化挖掘途径</div><p class="h-sub" style="margin-top:8px;max-width:240px">点击轮盘上的任意节点，卡片会翻转并播放案例动画。</p>`;
+        flipIn.style.transform = `rotateY(${st.angle}deg)`;
+      }
+      ctx.drawer.close();
+    }
+
+    return {
+      reset,
+      unmount() { clearInterval(autoTimer); },
+      async tour(ctx, prog) {
+        ctx.caption('调查显示：约一半创新机会来自企业内部（46%），另一半来自顾客（23%）、竞品（11%）及其他外部资源（20%）。');
+        for (let i = 0; i < SRC.length; i++) { focusSrc(i); await ctx.wait(1500); }
+        focusSrc(-1); prog(.15);
+        const caps = [
+          '① 培养个人兴趣：在热爱的领域里，痛点最容易被看见。',
+          '② 编写错误列表：把抱怨收集成清单——大数据词云让"普遍的困扰"浮出水面。',
+          '③ 从能力中挖掘：VRIO——有价值、稀有、难以模仿、不可替代。',
+          '④ 研究细分客户群：Shimano 发现人们说的与做的不同，最终找到休闲骑行者。',
+          '⑤ 把握宏观趋势：社会、环境、技术、人口结构的变化都会催生新机会。',
+          '⑥ 效仿但更好：SpinBrush 与星巴克在成熟品类中找到新切口。',
+          '⑦ 挖掘外部生态：领先用户、社交网络、高校研究机构、戴尔 IdeaStorm。'
+        ];
+        for (let i = 0; i < 7; i++) { ctx.caption(caps[i]); select(i); await ctx.wait(4300); prog(.15 + .85 * (i + 1) / 7); }
+      }
+    };
+  }
+});
+
+
+/* =====================================================================
+   MODULE 3 · 机会漏斗筛选流（Opportunity Tournament）
+   ===================================================================== */
+NPD.registerModule({
+  id: 'm3', index: 3, title: '机会漏斗筛选', en: 'Opportunity Tournament',
+  mount(ctx) {
+    const { svg, h } = ctx;
+    const W = 1100, H = 540, CY = 262, N = 54;
+    const C = { raw: '#94a3b8', blue: '#4c8dff', teal: '#2fd5bf', amber: '#f5a524', red: '#ff5d6c' };
+    const GATES = [
+      { x: 380, hh: 182, name: '滤网 ①', sub: '战略契合 × 市场规模', c: C.blue, open: 140 },
+      { x: 690, hh: 123, name: '滤网 ②', sub: '技术可行性 × 原型验证', c: C.teal, open: 86 },
+      { x: 930, hh: 79, name: '任务书', sub: 'Mission Statement', c: C.amber, open: 52 }
+    ];
+    const STAGES = [
+      { t: '待命 · 建立章程', crit: ['先用产品创新章程划定边界', '再大量生成原始机会', '然后逐级筛选——"机会锦标赛"'], c: C.raw },
+      { t: '生成原始机会', crit: ['内部 + 外部来源同时挖掘', '团队常识别出几十上百个原始机会', '此阶段只求数量，不急于评判'], c: C.raw },
+      { t: '滤网 ① · 战略契合与市场规模', crit: ['市场需求规模是否足够', '与公司战略、章程边界是否契合', '能否利用已有渠道与能力'], c: C.blue },
+      { t: '滤网 ② · 技术可行性与原型验证', crit: ['技术上是否可行、成本能否达标', '制作原型机与样品包装', '用真实用户测试原型'], c: C.teal },
+      { t: '任务书 · 选出推进项目', crit: ['与任务书的商业目标一致', '满足时间、渠道等约束', '进入正式开发流程'], c: C.amber }
+    ];
+    const PROC = ['建立章程', '生成机会', '筛选', '开发原型', '选出', '反思'];
+    const PROC_AT = [0, 1, 2, 3, 4];
+    const REASONS = [
+      ['市场需求规模不足', '与公司战略不契合', '超出创新章程边界', '无法利用已有渠道', '目标市场过于分散', '与现有产品重叠'],
+      ['技术可行性存疑', '原型测试反馈平淡', '成本无法达标', '样品包装吸引力弱'],
+      ['不符合任务书商业目标', '超出约 1 年的上市约束']
+    ];
+    const NAMES = ['激光逗猫器', '自动弹跳球', '漏食益智球', '羽毛转盘', '折叠隧道', '逗猫棒机器人', '猫薄荷抓板'];
+
+    /* ---------- layout ---------- */
+    const root = h(`
+      <div class="m3">
+        <div class="m3-main">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
+            <div><div class="eyebrow">Module 03 · Opportunity Tournament</div><div class="h-title">机会漏斗筛选流</div></div>
+            <div class="h-sub">示例：FroliCat 式猫玩具机会锦标赛</div>
+          </div>
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <div class="m3-side">
+          <div class="panel">
+            <div class="counts">
+              <div style="color:${C.raw}"><b data-c="0">0</b><span>原始机会</span></div>
+              <div style="color:${C.blue}"><b data-c="1">0</b><span>产品概念</span></div>
+              <div style="color:${C.teal}"><b data-c="2">0</b><span>原型/样品</span></div>
+              <div style="color:${C.amber}"><b data-c="3">0</b><span>推进项目</span></div>
+            </div>
+            <div class="proc">${PROC.map(p => `<span>${p}</span>`).join('')}</div>
+          </div>
+          <div class="panel crit"><div class="eyebrow">当前环节</div><div class="ct"></div><ul></ul></div>
+          <div class="panel mission">
+            <div class="eyebrow" style="color:var(--amber)">Mission Statement · 任务书（示例）</div>
+            <div style="font-size:15px;font-weight:600;margin-top:4px">激光逗猫器</div>
+            <div class="kv"><b>产品描述</b><span>自动激光逗猫玩具</span><b>效益描述</b><span>猫可独自玩耍，主人省心</span><b>商业目标</b><span>约 1 年内经已有零售渠道上市</span><b>主要市场</b><span>养猫家庭</span><b>利益相关者</b><span>猫主人 · 零售商 · 制造</span></div>
+          </div>
+          <div class="panel log"><div class="eyebrow">淘汰记录</div><ul></ul></div>
+        </div>
+      </div>`);
+    ctx.stage.appendChild(root);
+    const Q = s => root.querySelector(s);
+    const sv = Q('svg');
+
+    /* ---------- defs ---------- */
+    svg('defs', {}, sv).innerHTML = `
+      <linearGradient id="m3fun" x1="0" x2="1"><stop offset="0" stop-color="#4c8dff" stop-opacity=".06"/><stop offset=".6" stop-color="#2fd5bf" stop-opacity=".07"/><stop offset="1" stop-color="#f5a524" stop-opacity=".12"/></linearGradient>
+      <filter id="m3glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <linearGradient id="m3flow" x1="0" x2="1"><stop offset="0" stop-color="#2fd5bf" stop-opacity="0"/><stop offset=".5" stop-color="#2fd5bf" stop-opacity=".5"/><stop offset="1" stop-color="#2fd5bf" stop-opacity="0"/></linearGradient>`;
+
+    /* ---------- funnel ---------- */
+    const Z = [[30, 360, 215], [400, 670, 150], [710, 910, 96], [950, 1075, 62]];
+    const top = Z.flatMap(([a, b, hh]) => [[a, CY - hh], [b, CY - hh]]);
+    const bot = top.map(([x, y]) => [x, 2 * CY - y]).reverse();
+    svg('polygon', { points: top.concat(bot).map(p => p.join(',')).join(' '), fill: 'url(#m3fun)', stroke: '#273449', 'stroke-width': 1.3 }, sv);
+    // flowing center streak
+    const streak = svg('rect', { x: 30, y: CY - 1, width: 220, height: 2, fill: 'url(#m3flow)' }, sv);
+    // zone labels
+    [['原始机会 50+', 195, C.raw], ['产品概念 × 7', 535, C.blue], ['原型 / 样品包装 × 3', 810, C.teal], ['推进项目 × 1', 1012, C.amber]].forEach(([t, x, c], i) => {
+      svg('text', { x, y: CY + Z[i][2] + 26, 'text-anchor': 'middle', fill: c, 'font-size': 12.5, 'font-weight': 600, text: t }, sv);
+    });
+    // gates
+    const gateEls = GATES.map((g, i) => {
+      const gg = svg('g', {}, sv);
+      const glow = svg('rect', { x: g.x - 10, y: CY - g.hh, width: 20, height: g.hh * 2, rx: 6, fill: g.c, 'fill-opacity': .0, filter: 'url(#m3glow)' }, gg);
+      svg('line', { x1: g.x, y1: CY - g.hh, x2: g.x, y2: CY + g.hh, stroke: g.c, 'stroke-width': 2, 'stroke-opacity': .8 }, gg);
+      for (let y = CY - g.hh + 8; y < CY + g.hh; y += 10) svg('line', { x1: g.x - 6, y1: y, x2: g.x + 6, y2: y, stroke: g.c, 'stroke-opacity': .35 }, gg);
+      const scan = svg('rect', { x: g.x - 9, y: CY - g.hh, width: 18, height: 26, rx: 4, fill: g.c, 'fill-opacity': 0 }, gg);
+      svg('text', { x: g.x, y: CY - g.hh - 30, 'text-anchor': 'middle', fill: g.c, 'font-size': 13, 'font-weight': 700, text: g.name }, gg);
+      svg('text', { x: g.x, y: CY - g.hh - 14, 'text-anchor': 'middle', fill: '#8a97aa', 'font-size': 11, text: g.sub }, gg);
+      return { glow, scan, g };
+    });
+    const pg = svg('g', {}, sv);
+    const lg = svg('g', {}, sv);
+    const fx = svg('g', {}, sv);
+
+    /* ---------- particles ---------- */
+    const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    let P = [], S1 = [], S2 = [], WIN = null;
+    function build() {
+      pg.innerHTML = ''; lg.innerHTML = '';
+      P = Array.from({ length: N }, (_, i) => ({
+        i, x: -20, y: CY, tx: -20, ty: CY, s: 4, ts: 4, r: 1, tr: 1, a: 0, ta: 0, fate: 0, fall: false, vx: 0, vy: 0, wob: false, label: null,
+        el: svg('rect', { class: 'p3', width: 8, height: 8, style: `fill:${C.raw}` }, pg)
+      }));
+      const idx = shuffle(P.map(p => p.i));
+      S1 = idx.slice(0, 7); S2 = S1.slice(0, 3); WIN = S2[0];
+      S1.forEach(i => P[i].fate = 1); S2.forEach(i => P[i].fate = 2); P[WIN].fate = 3;
+      // names: winner first
+      S1.forEach((i, k) => P[i].name = NAMES[k]);
+      P._concSlot = shuffle(S1); P._protoSlot = shuffle(S2);
+    }
+
+    /* ---------- state & timing ---------- */
+    const st = { phase: 0, busy: false, spd: 1, gen: 0, counts: [0, 0, 0, 0] };
+    const later = (ms, fn) => { const g = st.gen; setTimeout(() => { if (g === st.gen) fn(); }, ms / st.spd); };
+    const sleep = ms => { const g = st.gen; return new Promise((res, rej) => setTimeout(() => g === st.gen ? res() : rej('reset'), ms / st.spd)); };
+
+    function setStage(k) {
+      const s = STAGES[k];
+      Q('.crit .ct').textContent = s.t; Q('.crit').style.setProperty('--cc', s.c);
+      Q('.crit ul').innerHTML = s.crit.map(c => `<li>${c}</li>`).join('');
+      root.querySelectorAll('.proc span').forEach((sp, i) => { sp.classList.toggle('on', i === PROC_AT[k] || (k === 5 && i === 5)); sp.classList.toggle('done', i < PROC_AT[k]); });
+      root.querySelectorAll('.counts div').forEach((d, i) => d.classList.toggle('on', (k === 1 && i === 0) || (k === 2 && i === 1) || (k === 3 && i === 2) || (k === 4 && i === 3)));
+    }
+    function count(i, v) {
+      const from = st.counts[i]; st.counts[i] = v; const el = Q(`[data-c="${i}"]`);
+      ctx.tween(500, p => el.textContent = Math.round(from + (v - from) * p));
+    }
+    function log(p, stage) {
+      const r = REASONS[stage][Math.random() * REASONS[stage].length | 0];
+      const ul = Q('.log ul');
+      const li = h(`<li><i style="background:${GATES[stage].c}"></i><b>#${String(p.i + 1).padStart(2, '0')}</b><span>${p.name ? p.name + ' · ' : ''}${r}</span></li>`);
+      ul.prepend(li); while (ul.children.length > 9) ul.lastChild.remove();
+    }
+    function gateFlash(k, ok) {
+      const g = gateEls[k]; g.glow.setAttribute('fill', ok ? GATES[k].c : C.red);
+      const o = ok ? .4 : .16; g.glow.setAttribute('fill-opacity', o);
+      ctx.tween(450, p => g.glow.setAttribute('fill-opacity', o * (1 - p)), ctx.ease.out);
+    }
+    function spark(x, y, c) {
+      const ring = svg('circle', { cx: x, cy: y, r: 4, fill: 'none', stroke: c, 'stroke-width': 2 }, fx);
+      ctx.tween(700, p => { ring.setAttribute('r', 4 + p * 26); ring.setAttribute('stroke-opacity', 1 - p); }, ctx.ease.out).then(() => ring.remove());
+    }
+    function setLabel(p, text, dx, dy, anchor = 'start', c = '#dbe4ef', size = 11.5) {
+      if (!p.label) p.label = svg('text', { class: 'lbl3', 'font-size': size, style: 'opacity:0' }, lg);
+      p.label.textContent = text; p.label.setAttribute('fill', c); p.label.setAttribute('text-anchor', anchor); p.label.setAttribute('font-size', size);
+      p.ldx = dx; p.ldy = dy; requestAnimationFrame(() => p.label.style.opacity = 1);
+    }
+    function reject(p, stage) {
+      p.el.style.fill = C.red; p.fall = true; p.vx = .03 + Math.random() * .05; p.vy = -.12 - Math.random() * .08;
+      if (p.label) p.label.style.opacity = 0;
+      gateFlash(stage, false); log(p, stage);
+    }
+
+    /* ---------- render loop ---------- */
+    let streakX = 0;
+    ctx.loop((t, dt) => {
+      const f = 1 - Math.exp(-dt * .006 * st.spd), f2 = 1 - Math.exp(-dt * .008);
+      streakX = (streakX + dt * .25) % 1100; streak.setAttribute('x', streakX - 220);
+      for (const p of P) {
+        if (p.fall) {
+          p.vy += .0009 * dt * st.spd; p.x += p.vx * dt * st.spd; p.y += p.vy * dt * st.spd; p.a -= .0011 * dt * st.spd;
+          if (p.a <= 0) { p.a = 0; p.fall = false; p.dead = true; p.ta = 0; }
+        } else {
+          p.x += (p.tx - p.x) * f; p.y += (p.ty - p.y) * f; p.a += (p.ta - p.a) * f;
+        }
+        p.s += (p.ts - p.s) * f2; p.r += (p.tr - p.r) * f2;
+        const wy = p.wob ? Math.sin(t * .0016 + p.i) * 4 : 0, wx = p.wob ? Math.cos(t * .0012 + p.i * 1.7) * 3 : 0;
+        const x = p.x + wx, y = p.y + wy;
+        p.el.setAttribute('x', x - p.s); p.el.setAttribute('y', y - p.s);
+        p.el.setAttribute('width', p.s * 2); p.el.setAttribute('height', p.s * 2);
+        p.el.setAttribute('rx', p.s * p.r); p.el.setAttribute('opacity', Math.max(0, p.a));
+        if (p.label) { p.label.setAttribute('x', x + p.ldx); p.label.setAttribute('y', y + p.ldy); }
+      }
+      // gate scanning bars
+      gateEls.forEach((g, k) => {
+        const on = st.phase === k + 2 && st.busy;
+        g.scan.setAttribute('fill-opacity', on ? .5 : 0);
+        if (on) g.scan.setAttribute('y', CY - g.g.hh + ((Math.sin(t / 260) * .5 + .5) * (g.g.hh * 2 - 26)));
+      });
+    });
+
+    /* ---------- phases ---------- */
+    async function ph1() {
+      setStage(1);
+      P.forEach((p, k) => later(k * 30, () => {
+        p.x = -10; p.y = CY + (Math.random() - .5) * 300; p.tx = 60 + Math.random() * 280; p.ty = CY + (Math.random() - .5) * 370;
+        p.ta = 1; p.wob = true; count(0, k + 1);
+      }));
+      await sleep(N * 30 + 900);
+    }
+    async function ph2() {
+      setStage(2);
+      const order = P.slice().sort((a, b) => a.x - b.x).reverse();
+      let passed = 0;
+      order.forEach((p, k) => later(k * 46, () => {
+        p.wob = false; p.tx = GATES[0].x - 14; p.ty = CY + Math.max(-140, Math.min(140, (p.y - CY) * .65));
+        later(460, () => {
+          if (p.fate >= 1) {
+            const slot = P._concSlot.indexOf(p.i);
+            p.tx = 535; p.ty = CY + (slot - 3) * 40; p.ts = 8; p.el.style.fill = C.blue;
+            setLabel(p, p.name, 18, 4); gateFlash(0, true); spark(GATES[0].x, p.y, C.blue);
+            count(1, ++passed);
+          } else reject(p, 0);
+        });
+      }));
+      await sleep(N * 46 + 1400);
+    }
+    async function ph3() {
+      setStage(3);
+      const list = P._concSlot.map(i => P[i]); let passed = 0;
+      list.forEach((p, k) => later(k * 260, () => {
+        p.tx = GATES[1].x - 14; p.ty = CY + Math.max(-86, Math.min(86, (p.y - CY) * .7));
+        later(560, () => {
+          if (p.fate >= 2) {
+            const slot = P._protoSlot.indexOf(p.i);
+            p.tx = 772; p.ty = CY + (slot - 1) * 58; p.ts = 11; p.tr = .28; p.el.style.fill = C.teal;
+            setLabel(p, `原型 ${'ABC'[slot]} · ${p.name}`, 20, 4, 'start', '#b4f5ec', 11.5);
+            gateFlash(1, true); spark(GATES[1].x, p.y, C.teal); count(2, ++passed);
+          } else reject(p, 1);
+        });
+      }));
+      await sleep(7 * 260 + 1500);
+    }
+    async function ph4() {
+      setStage(4);
+      const list = P._protoSlot.map(i => P[i]);
+      list.forEach((p, k) => later(k * 420, () => {
+        p.tx = GATES[2].x - 16; p.ty = CY + Math.max(-50, Math.min(50, (p.y - CY) * .7));
+        later(650, () => {
+          if (p.fate >= 3) {
+            p.tx = 1012; p.ty = CY; p.ts = 22; p.tr = .32; p.el.style.fill = C.amber; p.el.setAttribute('filter', 'url(#m3glow)');
+            setLabel(p, p.name, 0, 46, 'middle', '#ffd28a', 13);
+            gateFlash(2, true); spark(GATES[2].x, p.y, C.amber); later(500, () => spark(1012, CY, C.amber)); count(3, 1);
+          } else reject(p, 2);
+        });
+      }));
+      await sleep(3 * 420 + 1600);
+      Q('.mission').classList.add('show');
+      setStage(4); root.querySelectorAll('.proc span').forEach((sp, i) => { sp.classList.toggle('done', i < 5); sp.classList.toggle('on', i === 5); });
+    }
+    const PH = [ph1, ph2, ph3, ph4];
+
+    async function step() {
+      if (st.busy || st.phase >= 4) return false;
+      st.busy = true; syncBtns();
+      try { await PH[st.phase](); st.phase++; } catch (e) { if (e !== 'reset') console.error(e); }
+      st.busy = false; syncBtns(); return true;
+    }
+    async function play() {
+      if (st.phase >= 4) reset();
+      st.playing = true; syncBtns();
+      const g = st.gen;
+      while (st.phase < 4 && g === st.gen) { await step(); if (st.phase < 4) await new Promise(r => setTimeout(r, 500)); }
+      st.playing = false; syncBtns();
+    }
+    function reset() {
+      st.gen++; st.phase = 0; st.busy = false; st.playing = false;
+      st.counts = [0, 0, 0, 0]; root.querySelectorAll('[data-c]').forEach(e => e.textContent = 0);
+      Q('.log ul').innerHTML = ''; Q('.mission').classList.remove('show');
+      build(); setStage(0); syncBtns();
+    }
+
+    /* ---------- console ---------- */
+    const bPlay = h('<button class="btn sm primary"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>开始流转</button>');
+    const bStep = h('<button class="btn sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 5l7 7-7 7M16 5v14"/></svg>单步筛选</button>');
+    const bReset = h('<button class="btn sm">重置</button>');
+    const bSpd = h('<button class="btn sm mono">1×</button>');
+    ctx.on(bPlay, 'click', play);
+    ctx.on(bStep, 'click', () => { if (st.phase >= 4) reset(); step(); });
+    ctx.on(bReset, 'click', reset);
+    ctx.on(bSpd, 'click', () => { st.spd = st.spd === 1 ? 2 : st.spd === 2 ? .5 : 1; bSpd.textContent = st.spd + '×'; });
+    ctx.console.append(bPlay, bStep, bReset, bSpd);
+    function syncBtns() {
+      bPlay.disabled = st.busy || st.playing; bStep.disabled = st.busy || st.playing;
+      const labels = ['单步：生成机会', '单步：滤网 ①', '单步：滤网 ②', '单步：任务书', '单步：重新开始'];
+      bStep.lastChild.textContent = labels[st.phase];
+    }
+
+    reset();
+    ctx.caption('点击「开始流转」，或用「单步筛选」逐级观察机会如何被淘汰与通过。', { hint: true, ms: 4200 });
+
+    return {
+      reset,
+      unmount() { st.gen++; },
+      async tour(ctx, prog) {
+        reset(); st.spd = 1; bSpd.textContent = '1×';
+        const caps = [
+          '机会锦标赛：先生成大量原始机会——团队通常会识别几十甚至上百个。',
+          '滤网 ①：以市场需求规模与战略契合度筛选，50 多个原始机会沉淀为 7 个具象产品概念。',
+          '滤网 ②：检验技术可行性，制作原型机与样品包装，留下 3 个。',
+          '最后对照任务书（Mission Statement），只有 1 个项目进入正式开发。'
+        ];
+        for (let i = 0; i < 4; i++) { ctx.caption(caps[i]); prog(i / 4); await step(); await ctx.wait(1200); }
+        prog(1); await ctx.wait(2200);
+      }
+    };
+  }
+});
+
+
+/* =====================================================================
+   MODULE 4 · 颠覆式创新 vs 增量式创新
+   ===================================================================== */
+NPD.registerModule({
+  id: 'm4', index: 4, title: '颠覆式 vs 增量式', en: 'Disruptive vs Incremental',
+  mount(ctx) {
+    const { svg, h } = ctx;
+    const C = { teal: '#2fd5bf', blue: '#4c8dff', amber: '#f5a524', slate: '#94a3b8', red: '#ff5d6c' };
+    const W = 840, H = 500, X0 = 76, Y0 = 440, PW = 720, PH = 400;
+    const X = t => X0 + t * PW, Y = v => Y0 - v * PH;
+    // 曲线模型（归一化）
+    const main = t => .42 + .22 * t;                                // 主流市场可吸收性能
+    const low = t => .2 + .15 * t;                                  // 低端市场需求
+    const inc = t => .3 + .62 * t;                                  // 增量式（持续性）技术轨迹
+    const dis = t => .05 + .75 / (1 + Math.exp(-9 * (t - .6)));     // 颠覆式 S 曲线
+    const solve = (f, a = 0, b = 1) => { for (let i = 0; i < 40; i++) { const m = (a + b) / 2; (f(a) * f(m) <= 0) ? b = m : a = m; } return (a + b) / 2; };
+    const T_OVER = solve(t => inc(t) - main(t));
+    const T_LOW = solve(t => dis(t) - low(t));
+    const T_CROSS = solve(t => dis(t) - main(t));
+
+    const CASES = [
+      { k: 'bird', kind: 'dis', t: '鸟类飞行器', s: '达·芬奇 · 0→1',
+        icon: '<path d="M10 30 Q30 8 50 26 Q70 8 90 30" fill="none" stroke="#2fd5bf" stroke-width="2.5"/><path d="M42 26 L50 34 L58 26" fill="none" stroke="#2fd5bf" stroke-width="2"/><line x1="50" y1="26" x2="50" y2="40" stroke="#2fd5bf" stroke-width="2"/>',
+        body: '<p>达·芬奇留下的扑翼飞行器草图，回应的是"人想像鸟一样飞"这样一种<b>通用化需求</b>。</p><p>它并不完美，甚至无法真正飞行，但它构想了一种全新的产品形态——这正是 0 到 1 的思维方式。</p>' },
+      { k: 'benz', kind: 'dis', t: '奔驰一号三轮车', s: '1886 · 0→1',
+        icon: '<circle cx="22" cy="32" r="9" fill="none" stroke="#2fd5bf" stroke-width="2.5"/><circle cx="78" cy="32" r="9" fill="none" stroke="#2fd5bf" stroke-width="2.5"/><circle cx="48" cy="34" r="6" fill="none" stroke="#2fd5bf" stroke-width="2"/><path d="M22 32 L40 14 L70 14 L78 32 M40 14 L48 34" fill="none" stroke="#2fd5bf" stroke-width="2"/>',
+        body: '<p>早期汽车在速度、可靠性上都比不上成熟的马车，但它让人出行<b>更自由、更方便</b>。</p><p>随着技术加速进步，新产品在性能上追上并取代了原有主流产品的市场地位——颠覆式创新的典型轨迹。</p>' },
+      { k: 'jet', kind: 'inc', t: '喷气式客机', s: '头等舱 · 1→100',
+        icon: '<path d="M8 26 L88 22 Q96 24 88 28 L8 30 Z" fill="none" stroke="#4c8dff" stroke-width="2"/><path d="M46 24 L34 8 L42 8 L60 23 M46 28 L34 42 L42 42 L60 29 M14 26 L8 16 L14 16 L22 25" fill="none" stroke="#4c8dff" stroke-width="2"/>',
+        body: '<p>在成熟产品上持续提升舒适度、航程与服务，满足越来越<b>个性化</b>的需求。</p><p>当性能提升速度超过客户实际需要时，技术进步的边际效应递减，消费者的选择标准开始转向尚未被满足的属性。</p>' },
+      { k: 'car', kind: 'inc', t: '现代汽车', s: '豪华内饰 · 1→100',
+        icon: '<path d="M8 32 L14 20 Q18 14 28 14 L64 14 Q72 14 78 20 L90 24 L92 32 Z" fill="none" stroke="#4c8dff" stroke-width="2"/><circle cx="26" cy="34" r="6" fill="#0b111b" stroke="#4c8dff" stroke-width="2"/><circle cx="74" cy="34" r="6" fill="#0b111b" stroke="#4c8dff" stroke-width="2"/>',
+        body: '<p>持续优化内饰、动力与配置，提高顾客满意度——增量式创新（1 到 100）。</p><p>当性能"溢出"后，单纯堆料不再是卖点：价格、便利、易用等属性的权重上升。</p>' }
+    ];
+
+    /* ---------- layout ---------- */
+    const root = h(`
+      <div class="m4">
+        <div class="m4-main">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px">
+            <div><div class="eyebrow">Module 04 · Disruptive vs Incremental</div><div class="h-title">颠覆式创新 vs 增量式创新</div></div>
+            <div class="legend-row"><span><i style="background:${C.blue}"></i>增量式轨迹</span><span><i style="background:${C.teal}"></i>颠覆式轨迹</span><span><i style="background:${C.slate}"></i>市场需求</span></div>
+          </div>
+          <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="panel slider-row">
+            <span class="eyebrow" style="white-space:nowrap">技术边际效益 / 时间</span>
+            <input type="range" class="rng" min="0" max="1000" value="0" aria-label="技术边际效益滑块">
+            <span class="sv">0.00</span>
+          </div>
+        </div>
+        <div class="m4-side">
+          <div class="panel bal"><div class="eyebrow">天平 · 市场重心</div><svg viewBox="0 0 300 190"></svg></div>
+          <div class="panel attn">
+            <div class="eyebrow">消费者关注点</div>
+            <div class="rows"></div>
+            <svg viewBox="0 0 300 118"></svg>
+          </div>
+          <div class="panel"><div class="eyebrow" style="padding:14px 16px 0">典型产品</div><div class="cases"></div></div>
+        </div>
+      </div>`);
+    ctx.stage.appendChild(root);
+    const Q = s => root.querySelector(s);
+    const sv = Q('svg.chart');
+
+    /* ---------- chart scaffold ---------- */
+    svg('defs', {}, sv).innerHTML = `
+      <clipPath id="m4clip"><rect x="${X0}" y="0" width="0" height="${H}"/></clipPath>
+      <pattern id="m4hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#f5a524" stroke-width="2" stroke-opacity=".35"/></pattern>
+      <filter id="m4glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <marker id="m4arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5b677a"/></marker>
+      <linearGradient id="m4band" x1="0" x2="1"><stop offset="0" stop-color="#94a3b8" stop-opacity=".10"/><stop offset="1" stop-color="#94a3b8" stop-opacity=".18"/></linearGradient>`;
+    const clipRect = sv.querySelector('#m4clip rect');
+    for (let i = 1; i <= 4; i++) svg('line', { x1: X0, y1: Y(i / 4.4), x2: X0 + PW, y2: Y(i / 4.4), stroke: '#1c2738', 'stroke-dasharray': '2 6' }, sv);
+    svg('line', { x1: X0, y1: Y0, x2: X0 + PW + 20, y2: Y0, stroke: '#5b677a', 'stroke-width': 1.5, 'marker-end': 'url(#m4arr)' }, sv);
+    svg('line', { x1: X0, y1: Y0, x2: X0, y2: Y0 - PH - 20, stroke: '#5b677a', 'stroke-width': 1.5, 'marker-end': 'url(#m4arr)' }, sv);
+    svg('text', { x: X0 + PW, y: Y0 + 26, 'text-anchor': 'end', fill: '#8a97aa', 'font-size': 12, text: '时间 / 技术投入 →' }, sv);
+    svg('text', { x: X0 - 12, y: Y0 - PH - 26, fill: '#8a97aa', 'font-size': 12, text: '产品性能 ↑' }, sv);
+
+    const path = (f, a = 0, b = 1, n = 120) => { let d = ''; for (let i = 0; i <= n; i++) { const t = a + (b - a) * i / n; d += (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(f(t)).toFixed(1); } return d; };
+    // demand band (mainstream)
+    const bandD = path(t => main(t) + .035) + path(t => main(t) - .035, 1, 0).replace('M', 'L') + 'Z';
+    svg('path', { d: bandD, fill: 'url(#m4band)' }, sv);
+    svg('path', { d: path(main), fill: 'none', stroke: C.slate, 'stroke-width': 1.5, 'stroke-dasharray': '6 5' }, sv);
+    svg('path', { d: path(low), fill: 'none', stroke: C.slate, 'stroke-width': 1.2, 'stroke-dasharray': '2 5', 'stroke-opacity': .8 }, sv);
+    svg('text', { x: X(1) - 4, y: Y(main(1)) + 22, 'text-anchor': 'end', fill: '#b6c1cf', 'font-size': 11.5, text: '主流市场可吸收的性能' }, sv);
+    svg('text', { x: X(1) - 4, y: Y(low(1)) + 18, 'text-anchor': 'end', fill: '#8a97aa', 'font-size': 11, text: '低端市场需求' }, sv);
+    // ghost trajectories
+    svg('path', { d: path(inc), fill: 'none', stroke: C.blue, 'stroke-opacity': .16, 'stroke-width': 2 }, sv);
+    svg('path', { d: path(dis), fill: 'none', stroke: C.teal, 'stroke-opacity': .16, 'stroke-width': 2 }, sv);
+    // active (clipped)
+    const act = svg('g', { 'clip-path': 'url(#m4clip)' }, sv);
+    const overD = path(inc, T_OVER, 1, 80) + path(main, 1, T_OVER, 80).replace('M', 'L') + 'Z';
+    const over = svg('path', { d: overD, fill: 'url(#m4hatch)', stroke: C.amber, 'stroke-opacity': .4, 'stroke-dasharray': '3 4' }, act);
+    svg('path', { d: path(inc), fill: 'none', stroke: C.blue, 'stroke-width': 3, filter: 'url(#m4glow)' }, act);
+    svg('path', { d: path(dis), fill: 'none', stroke: C.teal, 'stroke-width': 3, filter: 'url(#m4glow)' }, act);
+    // labels
+    const labInc = svg('text', { x: X(.62), y: Y(inc(.62)) - 14, 'text-anchor': 'end', fill: C.blue, 'font-size': 12.5, 'font-weight': 600, opacity: 0, text: '增量式创新（1→100）· 持续性技术' }, sv);
+    const labDis = svg('text', { x: X(.36), y: Y(dis(.36)) + 24, fill: C.teal, 'font-size': 12.5, 'font-weight': 600, opacity: 0, text: '颠覆式创新（0→1）· 更便宜、易用、自由' }, sv);
+    const tOv = (T_OVER + 1) / 2;
+    const labOver = svg('g', { opacity: 0 }, sv);
+    svg('rect', { x: X(.84) - 82, y: Y((inc(.84) + main(.84)) / 2) - 13, width: 164, height: 24, rx: 6, fill: '#0b111b', stroke: C.amber, 'stroke-opacity': .6 }, labOver);
+    svg('text', { x: X(.84), y: Y((inc(.84) + main(.84)) / 2) + 4, 'text-anchor': 'middle', fill: C.amber, 'font-size': 12, 'font-weight': 600, text: '性能溢出 Overshooting' }, labOver);
+    // events
+    const evLow = svg('g', { opacity: 0 }, sv);
+    svg('circle', { cx: X(T_LOW), cy: Y(low(T_LOW)), r: 6, fill: '#0b111b', stroke: C.teal, 'stroke-width': 2 }, evLow);
+    svg('text', { x: X(T_LOW) + 10, y: Y(low(T_LOW)) + 20, fill: '#9fe9de', 'font-size': 11, text: '先在低端市场立足' }, evLow);
+    const evCross = svg('g', { opacity: 0 }, sv);
+    const crossRing = svg('circle', { cx: X(T_CROSS), cy: Y(main(T_CROSS)), r: 8, fill: 'none', stroke: C.teal, 'stroke-width': 2 }, evCross);
+    svg('circle', { cx: X(T_CROSS), cy: Y(main(T_CROSS)), r: 5, fill: C.teal }, evCross);
+    svg('rect', { x: X(T_CROSS) + 16, y: Y(main(T_CROSS)) + 18, width: 172, height: 26, rx: 7, fill: 'rgba(47,213,191,.14)', stroke: C.teal }, evCross);
+    svg('text', { x: X(T_CROSS) + 102, y: Y(main(T_CROSS)) + 36, 'text-anchor': 'middle', fill: '#c5f6ee', 'font-size': 12, 'font-weight': 600, text: '↗ 由下而上反超主流市场' }, evCross);
+    // cursor
+    const vline = svg('line', { y1: Y0 - PH, y2: Y0, stroke: '#e7edf5', 'stroke-opacity': .25, 'stroke-dasharray': '3 4' }, sv);
+    const dotI = svg('circle', { r: 6, fill: '#0b111b', stroke: C.blue, 'stroke-width': 2.5 }, sv);
+    const dotD = svg('circle', { r: 6, fill: '#0b111b', stroke: C.teal, 'stroke-width': 2.5 }, sv);
+    const tipI = svg('text', { fill: C.blue, 'font-size': 11, 'font-family': 'JetBrains Mono, monospace' }, sv);
+    const tipD = svg('text', { fill: C.teal, 'font-size': 11, 'font-family': 'JetBrains Mono, monospace' }, sv);
+
+    /* ---------- balance ---------- */
+    const bsv = Q('.bal svg');
+    const PX = 150, PY = 62, ARM = 108;
+    svg('path', { d: `M${PX} ${PY} L${PX - 26} 176 L${PX + 26} 176Z`, fill: 'rgba(148,163,184,.08)', stroke: '#33435c' }, bsv);
+    svg('line', { x1: PX - 60, y1: 177, x2: PX + 60, y2: 177, stroke: '#33435c', 'stroke-width': 2 }, bsv);
+    const beam = svg('g', {}, bsv);
+    svg('rect', { x: PX - ARM - 4, y: PY - 3, width: ARM * 2 + 8, height: 6, rx: 3, fill: '#273449' }, beam);
+    svg('circle', { cx: PX, cy: PY, r: 6, fill: '#0b111b', stroke: '#8a97aa', 'stroke-width': 2 }, bsv);
+    const pan = (c, t1, t2) => {
+      const g = svg('g', {}, bsv);
+      svg('line', { x1: 0, y1: 0, x2: -34, y2: 44, stroke: '#5b677a' }, g); svg('line', { x1: 0, y1: 0, x2: 34, y2: 44, stroke: '#5b677a' }, g);
+      svg('path', { d: 'M-44 44 Q0 70 44 44Z', fill: c, 'fill-opacity': .16, stroke: c, 'stroke-width': 1.5 }, g);
+      svg('text', { x: 0, y: 34, 'text-anchor': 'middle', fill: c, 'font-size': 12, 'font-weight': 700, text: t1 }, g);
+      svg('text', { x: 0, y: 84, 'text-anchor': 'middle', fill: '#8a97aa', 'font-size': 10.5, text: t2 }, g);
+      return g;
+    };
+    const panL = pan(C.teal, '颠覆式 0→1', '通用化需求');
+    const panR = pan(C.blue, '增量式 1→100', '个性化需求');
+
+    /* ---------- attention & marginal utility ---------- */
+    const ATTR = [['性能', C.blue], ['价格', C.amber], ['便利 / 易用', C.teal], ['小巧 / 自由', C.slate]];
+    const rows = Q('.attn .rows');
+    const bars = ATTR.map(([n, c]) => { const r = h(`<div class="row"><span>${n}</span><span class="tr"><i style="background:${c}"></i></span><b>0%</b></div>`); rows.appendChild(r); return r; });
+    const usv = Q('.attn svg');
+    const U = p => 1 - Math.exp(-3.2 * p);
+    const ux = p => 34 + p * 250, uy = s => 100 - s * 84;
+    svg('line', { x1: 34, y1: 100, x2: 290, y2: 100, stroke: '#33435c' }, usv);
+    svg('line', { x1: 34, y1: 100, x2: 34, y2: 10, stroke: '#33435c' }, usv);
+    svg('text', { x: 288, y: 114, 'text-anchor': 'end', fill: '#5b677a', 'font-size': 10, text: '性能' }, usv);
+    svg('text', { x: 30, y: 12, 'text-anchor': 'end', fill: '#5b677a', 'font-size': 10, text: '满意' }, usv);
+    let ud = ''; for (let i = 0; i <= 60; i++) { const p = i / 60; ud += (i ? 'L' : 'M') + ux(p) + ' ' + uy(U(p)); }
+    svg('path', { d: ud, fill: 'none', stroke: C.blue, 'stroke-width': 2 }, usv);
+    const tan = svg('line', { stroke: C.amber, 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, usv);
+    const uDot = svg('circle', { r: 5, fill: '#0b111b', stroke: C.blue, 'stroke-width': 2 }, usv);
+    const uTxt = svg('text', { x: 44, y: 24, fill: C.amber, 'font-size': 11, 'font-family': 'JetBrains Mono, monospace' }, usv);
+
+    /* ---------- cases ---------- */
+    const cw = Q('.cases');
+    CASES.forEach(c => {
+      const b = h(`<button class="case" style="border-color:${c.kind === 'dis' ? 'rgba(47,213,191,.25)' : 'rgba(76,141,255,.25)'}"><svg viewBox="0 0 100 46">${c.icon}</svg><b>${c.t}</b><span style="color:${c.kind === 'dis' ? C.teal : C.blue}">${c.s}</span></button>`);
+      ctx.on(b, 'click', () => openCase(c)); cw.appendChild(b);
+    });
+    function openCase(c) {
+      const dis = c.kind === 'dis';
+      ctx.drawer.open({
+        tag: dis ? 'Disruptive · 颠覆式创新（0→1）' : 'Incremental · 增量式创新（1→100）', title: c.t, accent: dis ? C.teal : C.blue,
+        html: c.body + (dis
+          ? '<h4>颠覆式创新的特点</h4><ul><li>创造新产品，赋予新的功能与属性</li><li>比原有产品更自由、更方便、更简单、更便宜、更小、更易操作</li><li>技术加速进步，最终赶上并取代主流产品</li></ul>'
+          : '<h4>增量式创新的特点</h4><ul><li>改善现有产品性能，提高顾客满意度</li><li>性能提升速度超过客户实际需求后，持续性技术逐渐失去意义</li><li>边际效应递减，选择标准转向尚未满足的属性</li></ul>')
+          + '<h4>需求视角</h4><p style="color:var(--muted)">产品开发者识别客户的<b>通用性需求</b>，催生颠覆式创新；识别<b>个性化需求</b>，催生增量式创新。</p>'
+      });
+    }
+
+    /* ---------- render ---------- */
+    const rng = Q('.rng'), svOut = Q('.sv');
+    const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    let crossFired = false;
+    function render(t) {
+      rng.value = Math.round(t * 1000); rng.style.setProperty('--p', t * 100 + '%'); svOut.textContent = t.toFixed(2);
+      clipRect.setAttribute('width', t * PW + 2);
+      vline.setAttribute('x1', X(t)); vline.setAttribute('x2', X(t));
+      const vi = inc(t), vd = dis(t);
+      dotI.setAttribute('cx', X(t)); dotI.setAttribute('cy', Y(vi)); dotD.setAttribute('cx', X(t)); dotD.setAttribute('cy', Y(vd));
+      const right = t > .82;
+      [[tipI, vi, -10], [tipD, vd, 18]].forEach(([el, v, dy]) => { el.setAttribute('x', X(t) + (right ? -12 : 12)); el.setAttribute('y', Y(v) + dy); el.setAttribute('text-anchor', right ? 'end' : 'start'); el.textContent = (v * 100).toFixed(0); });
+      labInc.setAttribute('opacity', sm(.45, .62, t)); labDis.setAttribute('opacity', sm(.2, .36, t));
+      labOver.setAttribute('opacity', sm(T_OVER + .18, T_OVER + .3, t));
+      evLow.setAttribute('opacity', sm(T_LOW, T_LOW + .04, t));
+      evCross.setAttribute('opacity', sm(T_CROSS, T_CROSS + .04, t));
+      if (t >= T_CROSS && !crossFired) { crossFired = true; ctx.tween(900, p => { crossRing.setAttribute('r', 8 + p * 30); crossRing.setAttribute('stroke-opacity', 1 - p); }, ctx.ease.out); }
+      if (t < T_CROSS) crossFired = false;
+      // balance: incremental heavier early; disruptive takes over after crossing
+      const s = sm(T_CROSS - .2, T_CROSS + .08, t);
+      const ang = (14 - 28 * s) * Math.PI / 180;   // + = right side down
+      beam.setAttribute('transform', `rotate(${ang * 180 / Math.PI} ${PX} ${PY})`);
+      panL.setAttribute('transform', `translate(${PX - Math.cos(ang) * ARM},${PY - Math.sin(ang) * ARM})`);
+      panR.setAttribute('transform', `translate(${PX + Math.cos(ang) * ARM},${PY + Math.sin(ang) * ARM})`);
+      // attention shift
+      const ov = Math.max(0, vi - main(t));
+      const w = [Math.max(.1, .66 - ov * 2), .14 + ov * .9, .12 + ov * .9, .08 + ov * .5];
+      const sum = w.reduce((a, b) => a + b, 0);
+      bars.forEach((r, i) => { const p = w[i] / sum * 100; r.querySelector('i').style.width = p + '%'; r.querySelector('b').textContent = p.toFixed(0) + '%'; });
+      // marginal utility at current incremental performance
+      const p = Math.min(1, vi), slope = 3.2 * Math.exp(-3.2 * p);
+      uDot.setAttribute('cx', ux(p)); uDot.setAttribute('cy', uy(U(p)));
+      const dx = 40, k = slope * 84 / 250;
+      tan.setAttribute('x1', ux(p) - dx); tan.setAttribute('y1', uy(U(p)) + k * dx); tan.setAttribute('x2', ux(p) + dx); tan.setAttribute('y2', uy(U(p)) - k * dx);
+      uTxt.textContent = `边际效益 ${slope.toFixed(2)}${slope < .35 ? '  ↓递减' : ''}`;
+      st.t = t;
+    }
+    const st = { t: 0, playing: false };
+    ctx.on(rng, 'input', () => { stopPlay(); render(rng.value / 1000); });
+
+    /* ---------- console ---------- */
+    const bPlay = h('<button class="btn sm primary"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg><span>播放演化</span></button>');
+    const bReset = h('<button class="btn sm">重置</button>');
+    const jumps = [['性能溢出', T_OVER + .25], ['低端立足', T_LOW + .02], ['反超时刻', T_CROSS + .03]].map(([n, v]) => {
+      const b = h(`<button class="btn sm">${n}</button>`); ctx.on(b, 'click', () => { stopPlay(); animTo(v, 900); }); return b;
+    });
+    ctx.on(bPlay, 'click', () => st.playing ? stopPlay() : startPlay());
+    ctx.on(bReset, 'click', () => { stopPlay(); animTo(0, 700); });
+    ctx.console.append(bPlay, ...jumps, bReset);
+    let playTok = 0;
+    function animTo(v, ms) { const tok = ++playTok, t0 = st.t; return ctx.tween(ms, p => { if (tok === playTok) render(t0 + (v - t0) * p); }); }
+    function startPlay() {
+      st.playing = true; bPlay.querySelector('span').textContent = '暂停'; bPlay.classList.add('on');
+      const from = st.t >= .999 ? 0 : st.t; const tok = ++playTok;
+      ctx.tween((1 - from) * 10000, p => { if (tok === playTok) render(from + (1 - from) * p); }, ctx.ease.lin).then(() => { if (tok === playTok) stopPlay(); });
+    }
+    function stopPlay() { if (!st.playing) return; st.playing = false; playTok++; bPlay.querySelector('span').textContent = '播放演化'; bPlay.classList.remove('on'); }
+
+    render(0);
+    setTimeout(() => { if (!ctx.touring && st.t === 0) animTo(.12, 1200); }, 600);
+
+    return {
+      reset() { stopPlay(); render(0); },
+      unmount() { playTok++; },
+      async tour(ctx, prog) {
+        render(0);
+        ctx.caption('横轴是时间与技术投入，纵轴是产品性能；灰色带是主流市场真正能吸收的性能。');
+        await ctx.wait(3600); prog(.1);
+        ctx.caption('增量式创新（1→100）：基于个性化需求，持续提升现有产品性能。');
+        await animTo(T_OVER + .02, 2600); await ctx.wait(1200); prog(.3);
+        ctx.caption('当性能提升超过客户实际需要——性能溢出，边际效益递减，关注点开始转向价格与便利。');
+        await animTo(T_OVER + .3, 2800); await ctx.wait(2400); prog(.5);
+        ctx.caption('颠覆式创新（0→1）：起初性能不完美，但更便宜、易用、自由，先在低端市场立足。');
+        await animTo(T_LOW + .05, 1600); await ctx.wait(1800); prog(.65);
+        ctx.caption('技术沿 S 曲线加速，颠覆者由下而上追上主流需求——天平随之倾斜。');
+        await animTo(T_CROSS + .06, 2400); await ctx.wait(2600); prog(.8);
+        await animTo(1, 1400);
+        openCase(CASES[1]); ctx.caption('例如奔驰一号三轮车：起初不如马车成熟，却开创了全新品类。'); await ctx.wait(3800);
+        openCase(CASES[2]); ctx.caption('而喷气式客机头等舱，则是在成熟产品上持续加码的增量式创新。'); await ctx.wait(3800);
+        ctx.drawer.close(); prog(1);
+      }
+    };
+  }
+});
+
+
+/* =====================================================================
+   MODULE 5 · 客户需求五步全流程（Customer Needs Pipeline）
+   ===================================================================== */
+NPD.registerModule({
+  id: 'm5', index: 5, title: '客户需求五步流程', en: 'Customer Needs Pipeline',
+  mount(ctx) {
+    const { svg, h } = ctx;
+    const C = { teal: '#2fd5bf', blue: '#4c8dff', amber: '#f5a524', slate: '#94a3b8', red: '#ff5d6c' };
+    const STEPS = [
+      { t: '收集原始数据', en: 'Gather Raw Data' },
+      { t: '转化为需求陈述', en: 'Interpret Needs' },
+      { t: '组织需求层级', en: 'Organize Hierarchy' },
+      { t: '建立相对重要性', en: 'Relative Importance' },
+      { t: '流程与结果反思', en: 'Reflect' }
+    ];
+
+    const root = h(`<div class="m5">
+      <div class="panel stepper">${STEPS.map((s, i) => `${i ? '<div class="sline"><i></i></div>' : ''}<div class="sn" data-i="${i}"><span class="dot">${i + 1}</span><span class="tx"><b>${s.t}</b><span>${s.en}</span></span></div>`).join('')}</div>
+      <div class="m5-body"></div></div>`);
+    ctx.stage.appendChild(root);
+    const body = root.querySelector('.m5-body');
+
+    /* ---------- step-scoped resources ---------- */
+    let cur = -1, sTok = 0, sTimers = [], api = {};
+    const sLoops = new Set();
+    ctx.loop((t, dt) => sLoops.forEach(f => f(t, dt)));
+    const later = (ms, fn) => { const tok = sTok; sTimers.push(setTimeout(() => { if (tok === sTok) fn(); }, ms)); };
+    function clearStep() { sTok++; sLoops.clear(); sTimers.forEach(clearTimeout); sTimers = []; }
+    const head = (i, extra = '') => `<div class="pane-h"><div><div class="eyebrow">Step 0${i + 1} · ${STEPS[i].en}</div><div class="h-title">${STEPS[i].t}</div></div><div style="display:flex;gap:8px;align-items:center">${extra}<button class="btn sm" data-explain>解析</button></div></div>`;
+
+    function goStep(i) {
+      if (i < 0 || i > 4 || i === cur) return;
+      clearStep(); cur = i;
+      root.querySelectorAll('.sn').forEach((s, k) => { s.classList.toggle('on', k === i); s.classList.toggle('done', k < i); });
+      root.querySelectorAll('.sline i').forEach((l, k) => l.style.width = k < i ? '100%' : '0');
+      const old = body.querySelector('.pane');
+      if (old) { old.classList.remove('in'); old.classList.add('out'); setTimeout(() => old.remove(), 450); }
+      const pane = h('<div class="pane"></div>'); body.appendChild(pane);
+      api = BUILD[i](pane) || {};
+      const ex = pane.querySelector('[data-explain]'); if (ex) ex.onclick = () => api.explain && api.explain();
+      requestAnimationFrame(() => requestAnimationFrame(() => pane.classList.add('in')));
+      bPrev.disabled = i === 0; bNext.disabled = i === 4;
+    }
+    root.querySelectorAll('.sn').forEach(s => ctx.on(s, 'click', () => goStep(+s.dataset.i)));
+
+    /* =================================================================
+       STEP 1 · 收集原始数据
+       ================================================================= */
+    function S1(el) {
+      el.innerHTML = head(0) + `<div class="s1">
+        <div class="col">
+          <div class="eyebrow">三种方法</div>
+          <div class="panel mcard" style="animation-delay:.05s"><svg viewBox="0 0 58 46">
+            <circle cx="14" cy="30" r="7" fill="${C.blue}"/><circle cx="44" cy="30" r="7" fill="${C.teal}"/>
+            <rect x="2" y="4" width="22" height="12" rx="5" fill="none" stroke="${C.blue}"><animate attributeName="opacity" values="1;1;0;0;1" dur="2.4s" repeatCount="indefinite"/></rect>
+            <rect x="34" y="4" width="22" height="12" rx="5" fill="none" stroke="${C.teal}"><animate attributeName="opacity" values="0;0;1;1;0" dur="2.4s" repeatCount="indefinite"/></rect></svg>
+            <div><b>访谈法</b><p>1 名或多名团队成员 × 单个顾客，一般 1–2 小时</p></div></div>
+          <div class="panel mcard" style="animation-delay:.15s"><svg viewBox="0 0 58 46"><circle cx="29" cy="23" r="5" fill="${C.amber}"/>
+            <g><animateTransform attributeName="transform" type="rotate" from="0 29 23" to="360 29 23" dur="14s" repeatCount="indefinite"/>
+            ${Array.from({ length: 10 }, (_, k) => { const a = k / 10 * Math.PI * 2; return `<circle cx="${29 + Math.cos(a) * 17}" cy="${23 + Math.sin(a) * 17}" r="3" fill="${C.teal}" opacity=".85"/>`; }).join('')}</g>
+            <circle cx="29" cy="23" r="9" fill="none" stroke="${C.amber}"><animate attributeName="r" values="6;13;6" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".8;0;.8" dur="2s" repeatCount="indefinite"/></circle></svg>
+            <div><b>焦点小组</b><p>主持人组织 8–12 名顾客，讨论约 2 小时</p></div></div>
+          <div class="panel mcard" style="animation-delay:.25s"><svg viewBox="0 0 58 46"><path d="M5 23 Q29 2 53 23 Q29 44 5 23Z" fill="none" stroke="${C.blue}" stroke-width="2"/>
+            <circle cy="23" r="7" fill="${C.teal}"><animate attributeName="cx" values="22;36;22" dur="3s" repeatCount="indefinite"/></circle></svg>
+            <div><b>观察使用中的产品</b><p>观察顾客使用现有产品或完成任务，揭示需求细节</p></div></div>
+          <div class="h-sub" style="padding:2px 4px">提示：观察比询问更能发现"说的 ≠ 做的"。</div>
+        </div>
+        <div class="panel umap">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="eyebrow">选择目标用户 · 用户地图</div>
+            <div class="seg-ctl"><button data-g="main">主流用户</button><button data-g="lead">领先用户</button><button data-g="ext">极端用户</button></div>
+          </div>
+          <svg viewBox="0 0 560 360"></svg>
+          <div class="info">点击上方按钮，看看应该优先找谁收集需求。</div>
+        </div>
+        <div class="col">
+          <div class="eyebrow">归档整理与用户互动</div>
+          ${[['🎙', '录音', '容易，但转成文本耗时，且可能让顾客紧张'], ['✎', '笔记', '手写笔记，访谈中最常见的记录方式'], ['▶', '录像', '常用于焦点小组与使用环境观察'], ['◩', '拍照', '易展示、画质高，但难记录动态信息']]
+            .map(([i, a, b], k) => `<div class="panel rec" style="animation-delay:${.1 + k * .1}s"><span class="ic">${i}</span><div><b>${a}</b><small>${b}</small></div></div>`).join('')}
+          <div class="panel rec" style="animation-delay:.55s;grid-template-columns:1fr"><div><b style="color:var(--amber)">智能互联时代的新来源</b><small>社交媒体上的用户关注点 · 产品运行数据（如后排儿童座椅的使用情况）</small></div></div>
+          <div class="panel outbox">产出：一组<b>原始数据</b>——通常是顾客陈述，辅以录像或照片。</div>
+        </div></div>`;
+      const sv = el.querySelector('.umap svg'), info = el.querySelector('.umap .info');
+      const X0 = 50, Y0 = 318, PW = 490, PH = 290, px = u => X0 + u * PW, py = v => Y0 - v * PH;
+      svg('line', { x1: X0, y1: Y0, x2: X0 + PW, y2: Y0, stroke: '#33435c' }, sv);
+      svg('line', { x1: X0, y1: Y0, x2: X0, y2: Y0 - PH, stroke: '#33435c' }, sv);
+      svg('text', { x: X0, y: Y0 + 22, fill: '#8a97aa', 'font-size': 11, text: '更早体验到需求' }, sv);
+      svg('text', { x: X0 + PW, y: Y0 + 22, 'text-anchor': 'end', fill: '#8a97aa', 'font-size': 11, text: '市场普及之后 →' }, sv);
+      svg('text', { x: X0 - 10, y: Y0 - PH + 4, 'text-anchor': 'end', fill: '#8a97aa', 'font-size': 11, transform: `rotate(-90 ${X0 - 18} ${Y0 - PH / 2})`, text: '' }, sv);
+      svg('text', { x: 18, y: Y0 - PH / 2, 'text-anchor': 'middle', fill: '#8a97aa', 'font-size': 11, transform: `rotate(-90 18 ${Y0 - PH / 2})`, text: '使用方式：常规 → 不寻常' }, sv);
+      const rn = () => { let s = 0; for (let k = 0; k < 6; k++) s += Math.random(); return s / 6 - .5; };
+      const D = [];
+      for (let k = 0; k < 64; k++) D.push({ g: 'main', u: Math.min(.97, Math.max(.3, .64 + rn() * .55)), v: Math.min(.62, Math.max(.05, .3 + rn() * .5)) });
+      for (let k = 0; k < 7; k++) D.push({ g: 'lead', u: .05 + Math.random() * .13, v: .28 + Math.random() * .34 });
+      for (let k = 0; k < 7; k++) D.push({ g: 'ext', u: .3 + Math.random() * .6, v: .8 + Math.random() * .15 });
+      const GC = { main: C.slate, lead: C.teal, ext: C.amber };
+      D.forEach((d, k) => { d.ph = Math.random() * 6; d.el = svg('circle', { cx: px(d.u), cy: py(d.v), r: d.g === 'main' ? 3.4 : 4.6, fill: GC[d.g], 'fill-opacity': d.g === 'main' ? .5 : .9, style: 'transition:r .4s, fill-opacity .4s' }, sv); });
+      const hulls = {
+        lead: [px(.115), py(.45), 52, 70, '领先用户'], ext: [px(.6), py(.875), 170, 30, '极端用户'], main: [px(.64), py(.33), 160, 92, '主流用户']
+      };
+      const hEls = {};
+      for (const k in hulls) {
+        const [cx, cy, rx, ry, lab] = hulls[k]; const g = svg('g', { opacity: 0, style: 'transition:opacity .45s' }, sv);
+        svg('ellipse', { cx, cy, rx, ry, fill: 'none', stroke: GC[k], 'stroke-width': 1.5, 'stroke-dasharray': '5 5' }, g);
+        svg('text', { x: cx, y: cy - ry - 8, 'text-anchor': 'middle', fill: GC[k], 'font-size': 12.5, 'font-weight': 700, text: lab }, g);
+        hEls[k] = g;
+      }
+      const INFO = {
+        main: '主流用户：代表大多数需求，但往往难以说清新需求——只在他们身上收集，容易得到"更快一点、更便宜一点"。',
+        lead: '<b style="color:var(--teal)">领先用户</b>：在市场普及前数月或数年就体验到需求，并能从创新中大幅受益。① 对现有产品十分不满，能清楚说出新需求；② 可能已自己发明了解决办法。',
+        ext: '<b style="color:var(--amber)">极端用户</b>：以不寻常的方式使用产品或有特殊需求。能帮团队发现主流市场尚未识别的需求——这正是竞争优势的来源。'
+      };
+      let sel = null;
+      function pick(g) {
+        sel = g; el.querySelectorAll('.umap [data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === g));
+        D.forEach(d => { d.el.setAttribute('r', d.g === g ? 6 : d.g === 'main' ? 3.2 : 4.2); d.el.setAttribute('fill-opacity', d.g === g ? 1 : .25); });
+        for (const k in hEls) hEls[k].setAttribute('opacity', k === g ? 1 : 0);
+        info.innerHTML = INFO[g]; info.style.borderColor = GC[g];
+      }
+      el.querySelectorAll('.umap [data-g]').forEach(b => b.onclick = () => pick(b.dataset.g));
+      sLoops.add(t => D.forEach(d => { d.el.setAttribute('cx', px(d.u) + Math.sin(t / 900 + d.ph) * 2.2); d.el.setAttribute('cy', py(d.v) + Math.cos(t / 1100 + d.ph) * 2.2); }));
+      return {
+        explain() { ctx.drawer.open({ tag: 'Step 01 · Gather Raw Data', title: '从用户那里收集原始数据', html: '<h4>三种方法</h4><ul><li><b>访谈法</b>：开发团队成员与单个顾客讨论，一般 1–2 小时</li><li><b>焦点小组</b>：主持人组织 8–12 名顾客讨论约 2 小时；主持人多为专业市场研究人员</li><li><b>观察使用中的产品</b>：观察顾客使用现有产品或完成需要新产品的工作</li></ul><h4>选择谁</h4><ul><li><b>领先用户</b>：比市场提前数月或数年体验需求</li><li><b>极端用户</b>：以不寻常方式使用产品或有特殊需求</li></ul><h4>如何记录</h4><p>录音、笔记、录像、拍照各有利弊。数据收集阶段的最终结果是一组原始数据——通常以顾客陈述的形式，辅以录像或照片。</p>' }); },
+        async tour(ctx) {
+          ctx.caption('第一步：用访谈、焦点小组和实境观察，从用户那里收集原始数据。'); await ctx.wait(3200);
+          pick('lead'); ctx.caption('优先找领先用户：他们比市场更早体验需求，对现有产品最不满。'); await ctx.wait(3800);
+          pick('ext'); ctx.caption('还有极端用户：以不寻常方式使用产品，帮团队发现主流市场看不到的需求。'); await ctx.wait(3800);
+        }
+      };
+    }
+
+    /* =================================================================
+       STEP 2 · 转化为需求陈述（五大黄金法则对比器）
+       ================================================================= */
+    function S2(el) {
+      const R = [
+        { t: '"做什么"而非"怎么做"', s: '隐藏具体技术方案', q: '我想用我的手机控制恒温器。',
+          ok: '恒温器可以在[不需要特殊装置]的情况下远程控制。', bad: '恒温器带有一个[可下载的手机应用程序]。',
+          wOk: '只描述产品要做什么，不限定技术方案，给概念开发留出空间。', wBad: '"手机 App"是一种具体方案——过早锁定了"怎么做"。' },
+        { t: '尽量具体', s: '像原始数据一样具体，避免信息丢失', q: '我有不同的加热和制冷系统。',
+          ok: '恒温器可以[分开控制加热和制冷]系统。', bad: '恒温器是[多功能的]。',
+          wOk: '保留了顾客原话里"加热 / 制冷分开"的关键信息。', wBad: '"多功能"过于笼统，原始数据中的信息丢失了。' },
+        { t: '肯定句而非否定句', s: '便于转化为产品规格', q: '我不想站在恒温器面前控制它。',
+          ok: '可以[在舒服的位置]控制恒温器。', bad: '恒温器[不需要我站在它面前]控制它。',
+          wOk: '肯定句直接描述目标状态，更容易转化为可测量的规格。', wBad: '否定句只说了"不要什么"，难以转化为产品规格。' },
+        { t: '表述为产品属性', s: '以产品为主语', q: '如果我回到家，我不得不手动重新设置程序。',
+          ok: '[恒温器]对用户的出现做出自动的反应。', bad: '[用户的出现]触发恒温器自动调整模式。',
+          wOk: '以"恒温器"为主语，描述的是产品属性。', wBad: '主语变成了"用户的出现"，描述的是事件而非产品属性。' },
+        { t: '避免"必须"和"应该"', s: '重要程度留给第 4 步', q: '如果恒温器可以在线控制，我担心它的安全性。',
+          ok: '恒温器控制系统[可以]安全地控制未授权的接入方式。', bad: '恒温器控制系统[必须]防止未授权的接入方式。',
+          wOk: '只陈述需求本身，重要程度在后续"建立相对重要性"环节再量化。', wBad: '"必须 / 应该"暗含了需求的重要程度，过早下了判断。' }
+      ];
+      el.innerHTML = head(1) + `<div class="s2">
+        <div class="rules">${R.map((r, i) => `<button class="rule" data-r="${i}"><span class="n">${i + 1}</span><span><b>${r.t}</b><small>${r.s}</small></span></button>`).join('')}
+          <div class="panel conflict"><div class="vs"><span class="n">二选一</span><span class="y">均保留</span></div><div>顾客需求相互矛盾时，不在此阶段解决——两条都记下，留给概念开发。</div></div>
+        </div>
+        <div class="panel s2-stage">
+          <div class="eyebrow">案例 · 智能恒温器（Thermostat）</div>
+          <div class="bubble"></div>
+          <div class="flowarrow"><span>INTERPRET → NEED STATEMENT</span></div>
+          <div class="tgl-row"><div class="tgl"><span class="l1">错误陈述</span><span class="sw"></span><span class="l2">正确陈述</span></div>
+            <button class="btn sm" data-morph>▶ 播放转化</button></div>
+          <div class="ncard"><div class="tagl"></div><div class="ntext"></div><div class="why"><i></i><span></span></div></div>
+          <div class="pair"><div><b style="color:var(--red)">✕ 错误</b><span class="pb"></span></div><div><b style="color:var(--teal)">✓ 正确</b><span class="pg"></span></div></div>
+        </div></div>`;
+      const Q = s => el.querySelector(s);
+      const st = { r: 0, ok: false };
+      const mk = (s, cls) => s.replace(/\[(.+?)\]/g, `<mark class="${cls}">$1</mark>`);
+      const plain = s => s.replace(/[\[\]]/g, '');
+      function render(animate = true) {
+        const r = R[st.r];
+        const apply = () => {
+          Q('.ncard').classList.toggle('ok', st.ok); Q('.tgl').classList.toggle('ok', st.ok);
+          Q('.ncard .tagl').textContent = st.ok ? `✓ 正确的需求陈述 · 法则 ${st.r + 1}` : `✕ 错误的需求陈述 · 违反法则 ${st.r + 1}`;
+          Q('.ncard .ntext').innerHTML = st.ok ? mk(r.ok, 'good') : mk(r.bad, 'bad');
+          Q('.ncard .why i').textContent = st.ok ? '✓' : '!';
+          Q('.ncard .why span').textContent = st.ok ? r.wOk : r.wBad;
+          Q('.ncard .ntext').classList.remove('swap');
+        };
+        if (animate) { Q('.ncard .ntext').classList.add('swap'); later(260, apply); } else apply();
+      }
+      function setRule(i) {
+        st.r = i; st.ok = false;
+        el.querySelectorAll('.rule').forEach((b, k) => b.classList.toggle('on', k === i));
+        const r = R[i]; const b = Q('.bubble');
+        b.style.opacity = 0; later(180, () => { b.textContent = '“' + r.q + '”'; b.style.transition = 'opacity .4s'; b.style.opacity = 1; });
+        Q('.pb').textContent = plain(r.bad); Q('.pg').textContent = plain(r.ok);
+        render();
+      }
+      function morph() {
+        st.ok = false; render(false);
+        later(900, () => Q('.ncard mark') && Q('.ncard mark').classList.add('strike'));
+        later(1900, () => { st.ok = true; render(); });
+      }
+      el.querySelectorAll('.rule').forEach(b => b.onclick = () => setRule(+b.dataset.r));
+      Q('.tgl').onclick = () => { st.ok = !st.ok; render(); };
+      Q('[data-morph]').onclick = morph;
+      setRule(0);
+      return {
+        explain() { ctx.drawer.open({ tag: 'Step 02 · Interpret Needs', title: '书写需求陈述的五大原则', html: `<ul>${R.map((r, i) => `<li><b>${i + 1}. ${r.t}</b>：${r.s}</li>`).join('')}</ul><h4>矛盾的需求</h4><p>当顾客表达的需求相互矛盾时，团队在该流程中不要试图解决矛盾，只需把两种需求都记下；如何解决留给后续概念开发。</p>` }); },
+        async tour(ctx) {
+          ctx.caption('第二步：把顾客的原话转化为标准的需求陈述——遵循五大法则。'); await ctx.wait(2000);
+          const caps = ['法则 1：描述"做什么"，不规定"怎么做"——手机 App 只是一种方案。', '法则 2：尽量具体——"多功能"丢失了原话里的信息。', '法则 3：用肯定句——否定句难以转化为规格。', '法则 4：表述为产品属性——以恒温器为主语。', '法则 5：避免"必须""应该"——重要程度留到第 4 步。'];
+          for (let i = 0; i < 5; i++) { setRule(i); ctx.caption(caps[i]); await ctx.wait(700); morph(); await ctx.wait(3300); }
+        }
+      };
+    }
+
+    /* =================================================================
+       STEP 3 · 组织需求层级（亲和图）
+       ================================================================= */
+    function S3(el) {
+      const PRI = [{ t: '一级 · 恒温器易于使用', cols: [0, 1], c: C.teal }, { t: '一级 · 恒温器节能舒适', cols: [2], c: C.blue }, { t: '一级 · 恒温器安全可靠', cols: [3], c: C.amber }];
+      const SEC = [{ t: '二级 · 易于设置', p: 0 }, { t: '二级 · 便于控制', p: 0 }, { t: '二级 · 自动调节', p: 1 }, { t: '二级 · 安全耐用', p: 2 }];
+      const NOTES = [
+        ['无须用户设置时间和日期', 0], ['能适应季节的变换', 0], ['适应显示时间和日期的不同偏好', 0],
+        ['不需特殊装置即可远程控制', 1], ['可在舒服的位置控制', 1], ['可分开控制加热和制冷', 1],
+        ['对用户的出现自动做出反应', 2], ['无人在家时自动节能', 2], ['保持室温稳定', 2],
+        ['能安全地控制未授权的接入', 3], ['无须更换电池', 3], ['断电后保留设置', 3],
+        ['可以远程控制', 1, true]
+      ];
+      const SIX = ['在卡片或便笺上写出每条需求陈述', '删除冗余陈述', '按需求相似性归类', '为每个组选择一个标签', '建立包含 2~5 个组的超级组', '评审和编辑组织好的需求'];
+      el.innerHTML = head(2, '<span class="h-sub">示例：恒温器需求（三级 → 二级 → 一级）</span>') + `<div class="s3">
+        <div class="board"><div class="sweep"></div></div>
+        <div class="panel six"><div class="eyebrow">亲和图 · 六步法</div>
+          ${SIX.map((s, i) => `<div class="st"><i>${i + 1}</i><span>${s}</span></div>`).join('')}
+          <div class="tools" style="margin-top:8px"><button class="btn sm primary" data-a="next">下一步</button><button class="btn sm" data-a="all">一键聚合</button><button class="btn sm" data-a="reset">打散</button></div>
+        </div></div>`;
+      const board = el.querySelector('.board'), sweep = el.querySelector('.sweep');
+      const COLX = [1.5, 26, 50.5, 75];
+      const priEls = PRI.map(p => { const e = h(`<div class="gh pri" style="background:${p.c};left:${COLX[p.cols[0]]}%;width:${(p.cols.length * 24.5) - 1}%;top:2%">${p.t}</div>`); board.appendChild(e); return e; });
+      const secEls = SEC.map((s, i) => { const e = h(`<div class="gh sec" style="color:${PRI[s.p].c};left:${COLX[i]}%;width:23.5%;top:13%">${s.t}</div>`); board.appendChild(e); return e; });
+      const counts = [0, 0, 0, 0];
+      const notes = NOTES.map(([t, g, dup]) => {
+        const e = h(`<div class="note">${t}<span class="ck">✓</span></div>`); board.appendChild(e);
+        const slot = dup ? -1 : counts[g]++;
+        return { e, g, dup, slot };
+      });
+      const st = { k: 0 };
+      function scatter() {
+        const cells = []; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) cells.push([c, r]);
+        cells.sort(() => Math.random() - .5);
+        notes.forEach((n, i) => { const [c, r] = cells[i]; n.sx = 2 + c * 24.5 + (Math.random() - .5) * 5; n.sy = 5 + r * 22 + (Math.random() - .5) * 7; n.rot = (Math.random() - .5) * 14; });
+      }
+      function apply(k) {
+        st.k = k;
+        el.querySelectorAll('.six .st').forEach((s, i) => { s.classList.toggle('on', i === k - 1); s.classList.toggle('done', i < k - 1); });
+        notes.forEach((n, i) => {
+          const grouped = k >= 3;
+          n.e.className = 'note' + (k >= 1 ? ' show' : '') + (grouped && !n.dup ? ' g' + SEC[n.g].p : '') + (k >= 2 && n.dup ? ' gone' : '') + (k >= 6 && !n.dup ? ' rv' : '');
+          if (grouped && !n.dup) { n.e.style.left = COLX[n.g] + '%'; n.e.style.top = (25 + n.slot * 22) + '%'; n.e.style.transform = 'none'; n.e.style.transitionDelay = (i * .04) + 's'; }
+          else { n.e.style.left = n.sx + '%'; n.e.style.top = n.sy + '%'; n.e.style.transform = k >= 1 ? `rotate(${n.rot}deg) scale(.88)` : 'scale(.6)'; n.e.style.transitionDelay = k === 1 ? (i * .05) + 's' : '0s'; }
+        });
+        secEls.forEach((e, i) => { e.classList.toggle('show', k >= 4); e.style.transitionDelay = (i * .08) + 's'; });
+        priEls.forEach((e, i) => { e.classList.toggle('show', k >= 5); e.style.transitionDelay = (i * .12) + 's'; });
+        if (k === 2) { const d = notes.find(n => n.dup); d.e.classList.remove('gone'); d.e.classList.add('shake'); later(1000, () => { d.e.classList.remove('shake'); d.e.classList.add('gone'); }); }
+        if (k === 6) {
+          sweep.style.opacity = 1; let x = 0;
+          ctx.tween(1800, p => { sweep.style.left = (COLX[0] + p * (COLX[3] - COLX[0])) + '%'; sweep.style.opacity = p < .9 ? 1 : (1 - p) * 10; }, ctx.ease.io);
+        }
+      }
+      function next() { apply(st.k >= 6 ? 1 : st.k + 1); if (st.k === 1) scatter(), apply(1); }
+      async function runAll(wait = (ms) => new Promise(r => later(ms, r))) { scatter(); apply(0); await wait(250); for (let k = 1; k <= 6; k++) { apply(k); await wait(k === 2 ? 1500 : 1300); } }
+      el.querySelector('[data-a=next]').onclick = () => { if (st.k === 0 || st.k >= 6) { scatter(); apply(0); later(60, () => apply(1)); } else apply(st.k + 1); };
+      el.querySelector('[data-a=all]').onclick = () => runAll();
+      el.querySelector('[data-a=reset]').onclick = () => { scatter(); apply(0); later(60, () => apply(1)); };
+      scatter(); apply(0); later(120, () => apply(1));
+      return {
+        explain() { ctx.drawer.open({ tag: 'Step 03 · Organize Hierarchy', title: '组织用户需求的层级', html: '<p>当详细的需求数量十分大时，处理和总结都很困难，因此把需求组织为<b>一级 / 二级 / 三级</b>的层级结构。</p><h4>六步法（亲和图）</h4><ul>' + SIX.map(s => `<li>${s}</li>`).join('') + '</ul><p style="color:var(--muted)">页面中的恒温器需求条目为教学示例。</p>' }); },
+        async tour(ctx) {
+          const caps = ['第三步：把每条需求写在便笺上——此时它们是散落的三级需求。', '删除冗余："可以远程控制"与已有陈述重复。', '按相似性归类：便笺自动磁吸到各自的组。', '为每个组选择标签——形成二级需求。', '建立包含 2~5 个组的超级组——一级需求。', '最后评审和编辑整个需求层级。'];
+          scatter(); apply(0); await ctx.wait(300);
+          for (let k = 1; k <= 6; k++) { ctx.caption(caps[k - 1]); apply(k); await ctx.wait(k === 1 ? 2600 : 2400); }
+        }
+      };
+    }
+
+    /* =================================================================
+       STEP 4 · 建立相对重要性（KANO + IPA）
+       ================================================================= */
+    function S4(el) {
+      el.innerHTML = head(3, '<div class="seg-ctl"><button data-v="kano" class="on">KANO 模型</button><button data-v="ipa">IPA 象限图</button></div>') + '<div class="s4"></div>';
+      const host = el.querySelector('.s4');
+      let view = null, sub = {};
+      function show(v) {
+        if (v === view) return; view = v;
+        el.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+        host.style.opacity = 0;
+        later(view === v && host.innerHTML ? 180 : 0, () => { host.innerHTML = ''; sub = v === 'kano' ? KANO(host) : IPA(host); host.style.transition = 'opacity .4s'; host.style.opacity = 1; });
+      }
+      el.querySelectorAll('[data-v]').forEach(b => b.onclick = () => show(b.dataset.v));
+      show('kano');
+      return {
+        explain() { ctx.drawer.open({ tag: 'Step 04 · Relative Importance', title: '建立用户需求的相对重要性', html: '<p>需求层级本身不说明哪些需求更重要，但团队必须在设计中权衡利弊、分配资源。</p><h4>两条基本途径</h4><ul><li>基于顾客体验形成团队成员共识</li><li>在进一步的顾客调查基础上形成重要性评价（如 1~5 级重要程度问卷，并勾选"独特、令人兴奋或出乎意料"的特征）</li></ul><h4>KANO 模型</h4><p>体现产品性能与用户满意之间的<b>非线性关系</b>：从顾客角度认识需要 → 设计问卷 → 实施调查 → 分类汇总建立质量原型 → 识别指标敏感性。</p><h4>IPA 模型</h4><p>重要度为横轴、绩效表现为纵轴：调查满意度 → 调查重视程度 → 绘制象限图 → 分类 → 制定策略。重要性需结合企业当前的性能表现来看。</p>' }); },
+        async tour(ctx) {
+          show('kano'); await ctx.wait(500);
+          ctx.caption('第四步：建立相对重要性。KANO 模型揭示性能与满意度之间的非线性关系。'); await sub.anim(); await ctx.wait(1200);
+          sub.select('must'); ctx.caption('必备需求：如手机通信信号——偶尔出问题就不能接受，但做得再好也不会触发购买。'); await sub.slide(-1, 1, 2600); await ctx.wait(1400);
+          sub.select('one'); ctx.caption('期望需求：如运行速度——越好越满意，大致线性。'); await ctx.wait(3000);
+          sub.select('att'); ctx.caption('魅力需求：没有也不会不满，一旦出现会带来惊喜。'); await ctx.wait(3000);
+          show('ipa'); await ctx.wait(700);
+          ctx.caption('IPA：同一需求的重要性，要结合企业当前绩效来决定资源投向。A 品牌外观满意度高 → 维持区。'); sub.brand('A'); await ctx.wait(4000);
+          sub.brand('B'); ctx.caption('B 品牌外观满意度低 → 落入重点改进区，研发资源随之重新分配。'); await ctx.wait(4400);
+        }
+      };
+    }
+
+    function KANO(host) {
+      host.innerHTML = `<div class="panel plot"><div style="display:flex;justify-content:space-between;align-items:center"><div class="eyebrow">KANO 模型 · 点击曲线查看</div><div class="legend-row" style="font-size:11px"></div></div><svg viewBox="0 0 600 420"></svg>
+        <div style="display:flex;align-items:center;gap:12px;padding:4px 6px"><span class="eyebrow" style="white-space:nowrap">需求实现程度</span><input type="range" class="rng" min="-1000" max="1000" value="-600"><span class="sv mono" style="color:var(--teal);font-size:12px;min-width:40px;text-align:right"></span></div></div>
+        <div class="side"><div class="panel kinfo"></div>
+          <div class="panel kinfo"><div class="eyebrow">同等重要，影响却不同 · 智能手机</div>
+            <div class="cbar"><span>通信信号</span><span class="tr"><i data-b="must"></i></span><b data-v="must"></b></div>
+            <div class="cbar"><span>运行速度</span><span class="tr"><i data-b="one"></i></span><b data-v="one"></b></div>
+            <p style="color:var(--muted);font-size:11.5px">拖动滑块：同样从"不足"到"充足"，两项对满意度的影响呈现不同的非线性。</p></div></div>`;
+      const sv = host.querySelector('svg');
+      const OX = 300, OY = 205, SX = 250, SY = 170, X = x => OX + x * SX, Y = y => OY - y * SY;
+      const K = {
+        att: { n: '魅力需求', en: 'Attractive', c: C.teal, f: x => Math.exp(2.3 * (x - 1)) * .95, d: '具备时满意度大幅提升，不具备也不会引起不满。', ex: '问卷中被勾选为"独特、令人兴奋或出乎意料"的特征。' },
+        one: { n: '期望需求', en: 'One-dimensional', c: C.blue, f: x => .82 * x, d: '满意度与实现程度大致成正比：越好越满意，越差越不满。', ex: '智能手机运行速度：越快越满意，卡顿会直接降低满意度。' },
+        must: { n: '必备需求', en: 'Must-be', c: C.amber, f: x => -Math.exp(-2.3 * (x + 1)) * .95, d: '不具备时极度不满；做得再好也只能消除不满，不会带来额外满意。', ex: '智能手机通信信号：偶尔出问题都不能接受，但通话流畅不会触发购买。' },
+        ind: { n: '无差异需求', en: 'Indifferent', c: C.slate, f: x => .03 * x, d: '无论是否具备，用户满意度基本不变。', ex: '用户并不在意的特征——不值得投入资源。' },
+        rev: { n: '反向需求', en: 'Reverse', c: C.red, f: x => -.5 * x, d: '具备得越多，用户反而越不满意。', ex: '过多、过于复杂的设置选项。' }
+      };
+      svg('rect', { x: X(-1), y: Y(1), width: SX * 2, height: SY * 2, fill: 'none', stroke: '#1c2738' }, sv);
+      svg('line', { x1: X(-1), y1: OY, x2: X(1) + 14, y2: OY, stroke: '#5b677a', 'stroke-width': 1.4 }, sv);
+      svg('line', { x1: OX, y1: Y(-1), x2: OX, y2: Y(1) - 14, stroke: '#5b677a', 'stroke-width': 1.4 }, sv);
+      [['满意', OX + 8, Y(1) - 4, 'start'], ['不满意', OX + 8, Y(-1) - 8, 'start'], ['充足 / 具备 →', X(1), Y(-1) + 18, 'end'], ['← 不充足 / 不具备', X(-1), Y(-1) + 18, 'start']]
+        .forEach(([t, x, y, a]) => svg('text', { x, y, 'text-anchor': a, fill: '#8a97aa', 'font-size': 11.5, text: t }, sv));
+      const pth = f => { let d = ''; for (let i = 0; i <= 100; i++) { const x = -1 + i / 50; d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(f(x)).toFixed(1); } return d; };
+      const lines = {}, dots = {};
+      const lg = host.querySelector('.legend-row');
+      Object.entries(K).forEach(([k, v]) => {
+        const g = svg('g', { class: 'kcurve' }, sv);
+        lines[k] = svg('path', { d: pth(v.f), fill: 'none', stroke: v.c, 'stroke-width': 2.4, 'stroke-dasharray': k === 'rev' || k === 'ind' ? '6 5' : '', pathLength: 100, style: 'transition:stroke-width .3s, opacity .3s' }, g);
+        svg('path', { d: pth(v.f), fill: 'none', stroke: 'transparent', 'stroke-width': 18 }, g);
+        const lx = k === 'must' ? 1 : k === 'rev' ? -1 : 1, ly = v.f(lx);
+        svg('text', { x: X(lx) + (lx > 0 ? -4 : 4), y: Y(ly) + (k === 'must' ? 16 : k === 'ind' ? -8 : k === 'rev' ? -10 : -8), 'text-anchor': lx > 0 ? 'end' : 'start', fill: v.c, 'font-size': 12, 'font-weight': 600, text: v.n }, g);
+        dots[k] = svg('circle', { r: 5, fill: '#0b111b', stroke: v.c, 'stroke-width': 2.5 }, sv);
+        g.addEventListener('click', () => select(k));
+        lg.insertAdjacentHTML('beforeend', `<span><i style="background:${v.c}"></i>${v.en}</span>`);
+      });
+      const vl = svg('line', { y1: Y(1), y2: Y(-1), stroke: '#e7edf5', 'stroke-opacity': .25, 'stroke-dasharray': '3 4' }, sv);
+      const info = host.querySelector('.kinfo'), rng = host.querySelector('.rng'), sv2 = host.querySelector('.sv');
+      let selK = null;
+      function select(k) {
+        selK = k; const v = K[k];
+        Object.entries(lines).forEach(([kk, l]) => { l.setAttribute('stroke-width', kk === k ? 4 : 2); l.style.opacity = kk === k ? 1 : .35; });
+        info.style.setProperty('--accent', v.c);
+        info.innerHTML = `<div class="eyebrow" style="color:${v.c}">${v.en}</div><h4>${v.n}</h4><p>${v.d}</p><div class="ex">例：${v.ex}</div>`;
+        info.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 400, easing: 'cubic-bezier(.22,.8,.24,1)' });
+      }
+      function setX(x) {
+        rng.value = Math.round(x * 1000); rng.style.setProperty('--p', ((x + 1) / 2 * 100) + '%'); sv2.textContent = x.toFixed(2);
+        vl.setAttribute('x1', X(x)); vl.setAttribute('x2', X(x));
+        Object.entries(K).forEach(([k, v]) => { dots[k].setAttribute('cx', X(x)); dots[k].setAttribute('cy', Y(v.f(x))); });
+        ['must', 'one'].forEach(k => {
+          const val = K[k].f(x), i = host.querySelector(`[data-b=${k}]`);
+          i.style.background = K[k].c; i.style.left = val >= 0 ? '50%' : (50 + val * 50) + '%'; i.style.width = Math.abs(val) * 50 + '%';
+          host.querySelector(`[data-v=${k}]`).textContent = (val >= 0 ? '+' : '') + val.toFixed(2);
+        });
+      }
+      rng.oninput = () => setX(rng.value / 1000);
+      function anim() { Object.values(lines).forEach(l => { l.setAttribute('stroke-dasharray', l.getAttribute('stroke-dasharray') || '100'); }); return ctx.tween(1400, p => Object.entries(lines).forEach(([k, l]) => { if (k !== 'rev' && k !== 'ind') { l.setAttribute('stroke-dasharray', '100'); l.setAttribute('stroke-dashoffset', 100 - 100 * p); } })); }
+      function slide(a, b, ms) { return ctx.tween(ms, p => setX(a + (b - a) * p)); }
+      select('must'); setX(-.6); anim();
+      return { select, slide, anim };
+    }
+
+    function IPA(host) {
+      const ATT = [
+        { n: '外观设计', I: 4.3, A: 4.4, B: 2.1 }, { n: '动力性能', I: 3.9, A: 3.6, B: 3.9 }, { n: '油耗经济', I: 4.1, A: 2.6, B: 3.7 },
+        { n: '车机系统', I: 3.6, A: 2.5, B: 2.9 }, { n: '内饰质感', I: 2.6, A: 4.1, B: 3.0 }, { n: '音响配置', I: 1.9, A: 3.9, B: 3.6 }, { n: '售后网点', I: 2.4, A: 2.3, B: 2.0 }
+      ];
+      const QD = {
+        keep: { n: '维持区', c: C.teal, s: '高重要 · 高绩效：继续保持优势。', w: 1.4 },
+        over: { n: '过度关心区', c: C.slate, s: '低重要 · 高绩效：投入可能过度，可适度回收资源。', w: .35 },
+        fix: { n: '重点改进区', c: C.red, s: '高重要 · 低绩效：优先投入研发资源。', w: 3.2 },
+        low: { n: '较低价值区', c: C.blue, s: '低重要 · 低绩效：低优先级，择机改进。', w: .6 }
+      };
+      host.innerHTML = `<div class="panel plot"><div style="display:flex;justify-content:space-between;align-items:center"><div class="eyebrow">IPA 重要性-绩效分析 · 汽车示例</div><div class="seg-ctl"><button data-b="A" class="on">A 品牌</button><button data-b="B">B 品牌</button></div></div><svg viewBox="0 0 600 420"></svg></div>
+        <div class="side"><div class="panel kinfo"></div><div class="panel kinfo alloc"><div class="eyebrow">研发资源再分配</div><div class="rows"></div></div></div>`;
+      const sv = host.querySelector('svg');
+      const X0 = 70, Y0 = 370, PW = 500, PH = 340, MN = 1.5, MX = 5, MID = 3.2;
+      const X = v => X0 + (v - MN) / (MX - MN) * PW, Y = v => Y0 - (v - MN) / (MX - MN) * PH;
+      const quad = (I, A) => I >= MID ? (A >= MID ? 'keep' : 'fix') : (A >= MID ? 'over' : 'low');
+      [['over', X0, Y(MX), X(MID) - X0, Y(MID) - Y(MX)], ['keep', X(MID), Y(MX), X(MX) - X(MID), Y(MID) - Y(MX)], ['low', X0, Y(MID), X(MID) - X0, Y0 - Y(MID)], ['fix', X(MID), Y(MID), X(MX) - X(MID), Y0 - Y(MID)]]
+        .forEach(([k, x, y, w, hh]) => {
+          svg('rect', { x, y, width: w, height: hh, fill: QD[k].c, 'fill-opacity': .07 }, sv);
+          svg('text', { x: x + (k === 'over' || k === 'low' ? 12 : w - 12), y: k === 'over' || k === 'keep' ? y + 22 : y + hh - 12, 'text-anchor': k === 'over' || k === 'low' ? 'start' : 'end', fill: QD[k].c, 'font-size': 13, 'font-weight': 700, text: QD[k].n }, sv);
+        });
+      svg('line', { x1: X(MID), y1: Y(MX), x2: X(MID), y2: Y0, stroke: '#5b677a', 'stroke-dasharray': '5 4' }, sv);
+      svg('line', { x1: X0, y1: Y(MID), x2: X(MX), y2: Y(MID), stroke: '#5b677a', 'stroke-dasharray': '5 4' }, sv);
+      svg('line', { x1: X0, y1: Y0, x2: X(MX) + 10, y2: Y0, stroke: '#5b677a' }, sv); svg('line', { x1: X0, y1: Y0, x2: X0, y2: Y(MX) - 10, stroke: '#5b677a' }, sv);
+      svg('text', { x: X(MX), y: Y0 + 22, 'text-anchor': 'end', fill: '#8a97aa', 'font-size': 11.5, text: '重要度 Importance →' }, sv);
+      svg('text', { x: 22, y: Y(3.25), 'text-anchor': 'middle', fill: '#8a97aa', 'font-size': 11.5, transform: `rotate(-90 22 ${Y(3.25)})`, text: '绩效表现 Performance →' }, sv);
+      const pts = ATT.map((a, i) => {
+        const g = svg('g', { class: 'ipt' }, sv);
+        const halo = svg('circle', { r: a.n === '外观设计' ? 16 : 0, fill: 'none', stroke: C.amber, 'stroke-opacity': .6, 'stroke-dasharray': '3 3' }, g);
+        const c = svg('circle', { r: a.n === '外观设计' ? 8 : 6, fill: '#0b111b', 'stroke-width': 2.5 }, g);
+        const t = svg('text', { x: 11, y: 4, fill: '#dbe4ef', 'font-size': 11.5, text: a.n }, g);
+        g.addEventListener('click', () => focus(i));
+        return { a, g, c, x: X(a.I), y: Y(a.A) };
+      });
+      const info = host.querySelectorAll('.kinfo')[0], rows = host.querySelector('.alloc .rows');
+      const bars = ATT.map(a => { const r = h(`<div class="row"><span>${a.n}</span><span class="tr"><i></i></span><b></b></div>`); rows.appendChild(r); return r; });
+      let brandK = 'A', focusI = 0;
+      function place() {
+        pts.forEach(p => { const q = quad(p.a.I, p.a[brandK]); p.c.setAttribute('stroke', QD[q].c); p.g.setAttribute('transform', `translate(${p.x},${p.y})`); });
+        const ws = ATT.map(a => QD[quad(a.I, a[brandK])].w * a.I); const sum = ws.reduce((s, v) => s + v, 0);
+        bars.forEach((r, i) => { const q = quad(ATT[i].I, ATT[i][brandK]); const pc = ws[i] / sum * 100; r.querySelector('i').style.width = pc * 2.2 + '%'; r.querySelector('i').style.background = QD[q].c; r.querySelector('b').textContent = pc.toFixed(0) + '%'; });
+      }
+      function focus(i) {
+        focusI = i; const a = ATT[i], q = quad(a.I, a[brandK]);
+        info.innerHTML = `<div class="eyebrow" style="color:${QD[q].c}">${brandK} 品牌 · ${QD[q].n}</div><h4>${a.n}</h4><p>${QD[q].s}</p><div class="ex">重要度 ${a.I.toFixed(1)} · 绩效 ${a[brandK].toFixed(1)}</div>${a.n === '外观设计' ? '<p style="font-size:11.5px;color:var(--muted)">同样重视外观，A 品牌满意度高、B 品牌满意度低——不同的绩效表现需要不同的策略。</p>' : ''}`;
+        info.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350 });
+      }
+      function brand(k) {
+        brandK = k; host.querySelectorAll('[data-b]').forEach(b => b.classList.toggle('on', b.dataset.b === k));
+        const from = pts.map(p => [p.x, p.y]);
+        ctx.tween(1000, t => pts.forEach((p, i) => { p.x = from[i][0]; p.y = from[i][1] + (Y(p.a[k]) - from[i][1]) * t; p.g.setAttribute('transform', `translate(${p.x},${p.y})`); }));
+        place(); focus(focusI);
+      }
+      host.querySelectorAll('[data-b]').forEach(b => b.onclick = () => brand(b.dataset.b));
+      place(); focus(0);
+      return { brand };
+    }
+
+    /* =================================================================
+       STEP 5 · 流程与结果反思
+       ================================================================= */
+    function S5(el) {
+      const QS = ['我们是否与目标市场上所有主要顾客都进行了交流？', '为了捕捉潜在需求，我们能否看到现有产品相关需求之外的需求？', '在跟踪访谈或调查中，是否还有应继续探究的领域？', '在交谈过的顾客中，哪些适合参与即将开展的开发活动？', '哪些是我们现在知道而开始时不知道的？是否对某些需求感到惊讶？', '我们的组织中是否包括那些需要深入理解顾客需求的人？', '我们该怎样完善未来活动的流程？'];
+      el.innerHTML = head(4, '<button class="btn sm" data-all>全部勾选</button><button class="btn sm" data-clr>清空</button>') + `<div class="s5">
+        <div class="panel ringp"><svg viewBox="0 0 180 180"><circle cx="90" cy="90" r="74" fill="none" stroke="#1c2738" stroke-width="12"/>
+          <circle class="arc" cx="90" cy="90" r="74" fill="none" stroke="url(#m5g)" stroke-width="12" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 90 90)" style="transition:stroke-dasharray .6s cubic-bezier(.22,.8,.24,1)"/>
+          <defs><linearGradient id="m5g" x1="0" x2="1"><stop offset="0" stop-color="${C.blue}"/><stop offset="1" stop-color="${C.teal}"/></linearGradient></defs>
+          <text class="pct" x="90" y="96" text-anchor="middle" fill="#e7edf5" font-size="34" font-weight="700" font-family="JetBrains Mono, monospace">0/7</text>
+          <text x="90" y="120" text-anchor="middle" fill="#8a97aa" font-size="11">项目自查</text></svg>
+          <div class="h-sub done-msg">识别顾客需求可以结构化，但并不是一门精确的科学——团队必须不断挑战自己的结果。</div></div>
+        <div class="clist">${QS.map((q, i) => `<button class="ci" style="animation-delay:${i * .07}s"><span class="bx"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>${q}</span></button>`).join('')}</div></div>`;
+      const items = [...el.querySelectorAll('.ci')];
+      function upd() {
+        const n = items.filter(i => i.classList.contains('on')).length;
+        el.querySelector('.arc').setAttribute('stroke-dasharray', `${n / 7 * 100} 100`);
+        el.querySelector('.pct').textContent = `${n}/7`;
+        el.querySelector('.done-msg').innerHTML = n === 7 ? '<b style="color:var(--teal)">✓ 自查完成</b>：带着这些答案进入目标规格与概念生成阶段。' : '识别顾客需求可以结构化，但并不是一门精确的科学——团队必须不断挑战自己的结果。';
+      }
+      items.forEach(i => i.onclick = () => { i.classList.toggle('on'); upd(); });
+      el.querySelector('[data-all]').onclick = () => items.forEach((i, k) => later(k * 160, () => { i.classList.add('on'); upd(); }));
+      el.querySelector('[data-clr]').onclick = () => { items.forEach(i => i.classList.remove('on')); upd(); };
+      return {
+        explain() { ctx.drawer.open({ tag: 'Step 05 · Reflect', title: '对结果和过程进行反思', html: '<p>虽然识别顾客需求的流程可以非常实用地结构化，但它并不是一门精确的科学。团队必须不断挑战自己的结果，确认它们与通过大量顾客沟通所积累的知识相一致。</p><h4>要问的问题</h4><ul>' + QS.map(q => `<li>${q}</li>`).join('') + '</ul>' }); },
+        async tour(ctx) {
+          ctx.caption('第五步：对结果和过程进行反思——逐项自查。');
+          for (let k = 0; k < 7; k++) { await ctx.wait(650); items[k].classList.add('on'); upd(); }
+          await ctx.wait(2000);
+        }
+      };
+    }
+
+    const BUILD = [S1, S2, S3, S4, S5];
+
+    /* ---------- console ---------- */
+    const bPrev = h('<button class="btn sm">← 上一步</button>');
+    const bNext = h('<button class="btn sm primary">下一步 →</button>');
+    ctx.on(bPrev, 'click', () => goStep(cur - 1));
+    ctx.on(bNext, 'click', () => goStep(cur + 1));
+    ctx.console.append(bPrev, bNext);
+
+    goStep(0);
+
+    return {
+      reset() { goStep(0); },
+      unmount() { clearStep(); },
+      async tour(ctx, prog) {
+        for (let i = 0; i < 5; i++) {
+          prog(i / 5); goStep(i); await ctx.wait(700);
+          if (api.tour) await api.tour(ctx);
+        }
+        prog(1);
+      }
+    };
+  }
+});
+
+
+NPD.boot();
+</script>
+</body>
+</html>
